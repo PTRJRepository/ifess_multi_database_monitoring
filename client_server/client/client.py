@@ -1,0 +1,855 @@
+import os
+import sys
+import socket
+import json
+import threading
+import time
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox, filedialog
+import platform
+import datetime
+import uuid
+import random
+
+# Tambahkan path untuk mengimpor dari direktori common
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+from common.network import NetworkMessage, send_message, receive_message, DEFAULT_PORT
+from common.db_utils import FirebirdConnector
+
+class ClientApp:
+    """Aplikasi client yang terhubung ke server dan menjalankan query di database lokal"""
+    def __init__(self):
+        self.socket = None
+        self.server_address = None
+        self.server_port = DEFAULT_PORT
+        self.client_id = f"client_{uuid.uuid4().hex[:8]}"
+        self.display_name = f"FDB-Client-{platform.node()}"
+        self.connected = False
+        self.running = True
+        self.db_connector = None
+        self.receive_thread = None
+        self.last_result = None
+        self.query_history = []
+        
+        # Inisialisasi UI
+        self.init_ui()
+    
+    def init_ui(self):
+        """Inisialisasi antarmuka pengguna"""
+        self.root = tk.Tk()
+        self.root.title("Firebird Query Client")
+        self.root.geometry("800x600")
+        
+        # Menu bar
+        menubar = tk.Menu(self.root)
+        conn_menu = tk.Menu(menubar, tearoff=0)
+        conn_menu.add_command(label="Connect to Server", command=self.connect_to_server_dialog)
+        conn_menu.add_command(label="Disconnect", command=self.disconnect_from_server)
+        conn_menu.add_separator()
+        conn_menu.add_command(label="Exit", command=self.exit_app)
+        menubar.add_cascade(label="Connection", menu=conn_menu)
+        
+        db_menu = tk.Menu(menubar, tearoff=0)
+        db_menu.add_command(label="Select Database", command=self.select_database)
+        db_menu.add_command(label="Test Connection", command=self.test_db_connection)
+        db_menu.add_separator()
+        db_menu.add_command(label="Change Settings", command=self.change_db_settings)
+        menubar.add_cascade(label="Database", menu=db_menu)
+        
+        # Tambahkan menu Testing
+        test_menu = tk.Menu(menubar, tearoff=0)
+        test_menu.add_command(label="Run Test Query", command=self.run_test_query)
+        menubar.add_cascade(label="Testing", menu=test_menu)
+        
+        self.root.config(menu=menubar)
+        
+        # Main frame
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Connection status frame
+        status_frame = ttk.LabelFrame(main_frame, text="Status")
+        status_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Server connection status
+        server_frame = ttk.Frame(status_frame)
+        server_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(server_frame, text="Server: ").pack(side=tk.LEFT)
+        self.server_status = ttk.Label(server_frame, text="Disconnected")
+        self.server_status.pack(side=tk.LEFT)
+        
+        self.connect_button = ttk.Button(server_frame, text="Connect", command=self.connect_to_server_dialog)
+        self.connect_button.pack(side=tk.RIGHT)
+        
+        # Database connection status
+        db_frame = ttk.Frame(status_frame)
+        db_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(db_frame, text="Database: ").pack(side=tk.LEFT)
+        self.db_status = ttk.Label(db_frame, text="Not Selected")
+        self.db_status.pack(side=tk.LEFT)
+        
+        self.select_db_button = ttk.Button(db_frame, text="Select Database", command=self.select_database)
+        self.select_db_button.pack(side=tk.RIGHT)
+        
+        # Settings frame
+        settings_frame = ttk.LabelFrame(main_frame, text="Settings")
+        settings_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Client ID & Name
+        client_frame = ttk.Frame(settings_frame)
+        client_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(client_frame, text="Client ID: ").pack(side=tk.LEFT)
+        self.client_id_var = tk.StringVar(value=self.client_id)
+        client_id_entry = ttk.Entry(client_frame, textvariable=self.client_id_var, state="readonly", width=20)
+        client_id_entry.pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Label(client_frame, text="Display Name: ").pack(side=tk.LEFT)
+        self.display_name_var = tk.StringVar(value=self.display_name)
+        display_name_entry = ttk.Entry(client_frame, textvariable=self.display_name_var, width=30)
+        display_name_entry.pack(side=tk.LEFT)
+        
+        # Log & History Frame with Notebook
+        notebook = ttk.Notebook(main_frame)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Query History Tab
+        history_frame = ttk.Frame(notebook)
+        notebook.add(history_frame, text="Query History")
+        
+        self.history_tree = ttk.Treeview(history_frame, columns=("Timestamp", "Query", "Status"), show="headings")
+        self.history_tree.heading("Timestamp", text="Timestamp")
+        self.history_tree.heading("Query", text="Query")
+        self.history_tree.heading("Status", text="Status")
+        self.history_tree.column("Timestamp", width=150)
+        self.history_tree.column("Query", width=450)
+        self.history_tree.column("Status", width=100)
+        self.history_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Last Result Tab
+        result_frame = ttk.Frame(notebook)
+        notebook.add(result_frame, text="Last Result")
+        
+        self.result_text = scrolledtext.ScrolledText(result_frame, height=10)
+        self.result_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.result_text.config(state=tk.DISABLED)
+        
+        # Log Tab
+        log_frame = ttk.Frame(notebook)
+        notebook.add(log_frame, text="Log")
+        
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=10)
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.log_text.config(state=tk.DISABLED)
+        
+        # Konfigurasi closing event
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_app)
+        
+        # Update UI setiap 1 detik
+        self.update_ui()
+    
+    def update_ui(self):
+        """Update antarmuka pengguna secara periodik"""
+        if self.connected:
+            self.server_status.config(text=f"Connected to {self.server_address}:{self.server_port}")
+            self.connect_button.config(text="Disconnect", command=self.disconnect_from_server)
+        else:
+            self.server_status.config(text="Disconnected")
+            self.connect_button.config(text="Connect", command=self.connect_to_server_dialog)
+        
+        if self.db_connector:
+            self.db_status.config(text=f"Connected: {os.path.basename(self.db_connector.db_path)}")
+            self.select_db_button.config(text="Change Database")
+        else:
+            self.db_status.config(text="Not Selected")
+            self.select_db_button.config(text="Select Database")
+        
+        # Schedule next update
+        self.root.after(1000, self.update_ui)
+    
+    def log(self, message):
+        """Tambahkan pesan ke log"""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_message = f"[{timestamp}] {message}\n"
+        
+        self.log_text.config(state=tk.NORMAL)
+        self.log_text.insert(tk.END, log_message)
+        self.log_text.see(tk.END)
+        self.log_text.config(state=tk.DISABLED)
+        
+        print(log_message, end="")
+    
+    def connect_to_server_dialog(self):
+        """Dialog untuk terhubung ke server"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Connect to Server")
+        dialog.geometry("300x150")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="Server Address:").pack(padx=10, pady=(10, 0), anchor=tk.W)
+        address_var = tk.StringVar(value=self.server_address or "localhost")
+        address_entry = ttk.Entry(dialog, textvariable=address_var, width=30)
+        address_entry.pack(padx=10, pady=(0, 10), fill=tk.X)
+        
+        ttk.Label(dialog, text="Port:").pack(padx=10, pady=(0, 0), anchor=tk.W)
+        port_var = tk.StringVar(value=str(self.server_port))
+        port_entry = ttk.Entry(dialog, textvariable=port_var, width=10)
+        port_entry.pack(padx=10, pady=(0, 10), fill=tk.X)
+        
+        # Button frame
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        def do_connect():
+            address = address_var.get().strip()
+            port = port_var.get().strip()
+            
+            if not address:
+                messagebox.showwarning("Input Error", "Server address is required", parent=dialog)
+                return
+            
+            try:
+                port = int(port)
+            except ValueError:
+                messagebox.showwarning("Input Error", "Port must be a number", parent=dialog)
+                return
+            
+            dialog.destroy()
+            self.connect_to_server(address, port)
+        
+        ttk.Button(button_frame, text="Connect", command=do_connect).pack(side=tk.RIGHT)
+        ttk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
+        
+        # Focus entry
+        address_entry.focus_set()
+    
+    def connect_to_server(self, address, port):
+        """Terhubung ke server"""
+        if self.connected:
+            messagebox.showinfo("Already Connected", "Already connected to server. Please disconnect first.")
+            return
+        
+        try:
+            # Buat socket
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(10.0)  # Tingkatkan timeout menjadi 10 detik
+            self.socket.connect((address, port))
+            
+            # Update status
+            self.server_address = address
+            self.server_port = port
+            self.connected = True
+            
+            # Daftarkan client ke server
+            self.register_to_server()
+            
+            # Mulai thread untuk menerima pesan
+            self.receive_thread = threading.Thread(target=self.receive_messages)
+            self.receive_thread.daemon = True
+            self.receive_thread.start()
+            
+            self.log(f"Terhubung ke server: {address}:{port}")
+        except Exception as e:
+            self.log(f"Error saat terhubung ke server: {e}")
+            messagebox.showerror("Connection Error", f"Tidak dapat terhubung ke server: {e}")
+            
+            # Reset status
+            self.connected = False
+            if self.socket:
+                try:
+                    self.socket.close()
+                except:
+                    pass
+                self.socket = None
+    
+    def register_to_server(self):
+        """Mendaftarkan client ke server"""
+        if not self.connected or not self.socket:
+            return
+        
+        try:
+            # Persiapkan data registrasi
+            display_name = self.display_name_var.get() or self.display_name
+            client_id = self.client_id_var.get() or self.client_id
+            
+            db_info = {}
+            if self.db_connector:
+                db_info = {
+                    'path': self.db_connector.db_path,
+                    'name': os.path.basename(self.db_connector.db_path)
+                }
+            
+            register_data = {
+                'display_name': display_name,
+                'db_info': db_info,
+                'platform': platform.system(),
+                'hostname': platform.node(),
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            
+            # Kirim pesan registrasi
+            register_message = NetworkMessage(NetworkMessage.TYPE_REGISTER, register_data, client_id)
+            
+            # Pastikan kirim pesan registrasi berhasil
+            success = send_message(self.socket, register_message)
+            
+            if success:
+                self.log(f"Terhubung ke server: {self.server_address}:{self.server_port}")
+            else:
+                self.log("Gagal mengirim data registrasi ke server")
+                self.disconnect_from_server()
+        except Exception as e:
+            self.log(f"Error saat mendaftarkan client: {e}")
+            self.disconnect_from_server()
+    
+    def disconnect_from_server(self):
+        """Putuskan koneksi dari server"""
+        if not self.connected:
+            messagebox.showinfo("Not Connected", "Not connected to any server.")
+            return
+        
+        try:
+            self.connected = False
+            if self.socket:
+                self.socket.close()
+                self.socket = None
+            
+            self.log("Terputus dari server")
+        except Exception as e:
+            self.log(f"Error saat memutuskan koneksi: {e}")
+    
+    def receive_messages(self):
+        """Thread untuk menerima pesan dari server"""
+        try:
+            while self.running and self.connected:
+                try:
+                    # Set timeout untuk socket
+                    if self.socket:
+                        self.socket.settimeout(10.0)  # Tingkatkan timeout menjadi 10 detik
+                    else:
+                        break
+                    
+                    # Terima pesan
+                    message = receive_message(self.socket)
+                    
+                    if not message:
+                        # Koneksi terputus
+                        break
+                    
+                    # Proses pesan
+                    if message.msg_type == NetworkMessage.TYPE_PING:
+                        # Balas ping
+                        self.send_pong()
+                    elif message.msg_type == NetworkMessage.TYPE_QUERY:
+                        # Eksekusi query
+                        self.execute_query(message.data)
+                except socket.timeout:
+                    # Log timeout dan coba kirim ping untuk mengecek koneksi
+                    self.log("Socket timeout, mencoba kirim heartbeat...")
+                    try:
+                        self.send_pong()
+                    except:
+                        self.log("Gagal mengirim heartbeat, koneksi terputus")
+                        break
+                    continue
+                except ConnectionError as ce:
+                    self.log(f"Connection error: {ce}")
+                    break
+                except Exception as e:
+                    self.log(f"Error saat menerima pesan: {e}")
+                    break
+            
+            # Koneksi terputus
+            if self.connected:
+                self.log("Koneksi ke server terputus")
+                self.connected = False
+                if self.socket:
+                    try:
+                        self.socket.close()
+                    except:
+                        pass
+                    self.socket = None
+        except Exception as e:
+            self.log(f"Error di thread receive_messages: {e}")
+        finally:
+            self.connected = False
+    
+    def send_pong(self):
+        """Kirim respons pong ke server"""
+        if not self.connected or not self.socket:
+            return
+        
+        try:
+            pong_message = NetworkMessage(NetworkMessage.TYPE_PONG, {}, self.client_id_var.get() or self.client_id)
+            send_message(self.socket, pong_message)
+        except Exception as e:
+            self.log(f"Error sending pong: {e}")
+    
+    def execute_query(self, query_data):
+        """Eksekusi query dari server"""
+        query = query_data.get('query', '')
+        description = query_data.get('description', '')
+        
+        print("="*50)
+        print(f"EXECUTE QUERY: Menerima permintaan eksekusi query")
+        print(f"Query: {query}")
+        print(f"Description: {description}")
+        print("="*50)
+        
+        if not query:
+            print("ERROR: Query kosong")
+            self.send_error_result("Query kosong", query_data)
+            return
+        
+        if not self.db_connector:
+            print("ERROR: Database tidak terpilih")
+            self.send_error_result("Database tidak terpilih", query_data)
+            return
+        
+        # Pastikan path database masih valid
+        if not os.path.exists(self.db_connector.db_path):
+            print(f"ERROR: File database tidak ditemukan: {self.db_connector.db_path}")
+            self.send_error_result(f"File database tidak ditemukan: {self.db_connector.db_path}", query_data)
+            return
+            
+        self.log(f"Menerima query: {query}")
+        
+        # Tambahkan ke history
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        history_item = (timestamp, query, "Running")
+        self.history_tree.insert("", 0, values=history_item)
+        
+        try:
+            # Eksekusi query
+            print(f"DEBUG: Mengeksekusi query via db_connector...")
+            result = self.db_connector.execute_query(query)
+            print(f"DEBUG: Query berhasil dieksekusi")
+            
+            # Debug info
+            self.log(f"Query berhasil: {len(result)} result sets ditemukan")
+            for i, rs in enumerate(result):
+                headers = rs.get('headers', [])
+                rows = rs.get('rows', [])
+                self.log(f"  Result set {i+1}: {len(rows)} rows, {len(headers)} columns")
+                if len(rows) > 0:
+                    self.log(f"  Sample first row: {list(rows[0].values())[:3]}...")
+                
+                print(f"DEBUG: Result set {i+1} details:")
+                print(f"  Headers: {headers}")
+                print(f"  Rows: {len(rows)}")
+                if rows and len(rows) > 0:
+                    print(f"  Sample row data: {str(rows[0])[:200]}...")
+            
+            # Update history
+            for item in self.history_tree.get_children():
+                values = self.history_tree.item(item, 'values')
+                if values[0] == timestamp and values[1] == query:
+                    self.history_tree.item(item, values=(timestamp, query, "Success"))
+                    break
+            
+            # Kirim hasil ke server
+            print("DEBUG: Mengirim hasil ke server...")
+            self.send_query_result(query, result, description)
+            
+            # Simpan hasil terakhir
+            self.last_result = result
+            self.update_result_display(result)
+            
+            self.log("Query berhasil dieksekusi")
+        except Exception as e:
+            error_message = str(e)
+            print(f"ERROR saat eksekusi query: {error_message}")
+            import traceback
+            traceback.print_exc()
+            
+            # Update history
+            for item in self.history_tree.get_children():
+                values = self.history_tree.item(item, 'values')
+                if values[0] == timestamp and values[1] == query:
+                    self.history_tree.item(item, values=(timestamp, query, "Error"))
+                    break
+            
+            self.log(f"Error saat eksekusi query: {error_message}")
+            self.send_error_result(error_message, query_data)
+    
+    def send_query_result(self, query, result, description):
+        """Kirim hasil query ke server"""
+        if not self.connected or not self.socket:
+            print("DEBUG: Tidak dapat mengirim hasil - tidak terhubung ke server")
+            return
+        
+        try:
+            # Debug info tentang data yang akan dikirim
+            print("="*50)
+            print("SEND QUERY RESULT: Mempersiapkan pengiriman hasil query")
+            print(f"Query: {query[:100]}...")
+            print(f"Result sets: {len(result)}")
+            
+            for i, rs in enumerate(result):
+                headers = rs.get('headers', [])
+                rows = rs.get('rows', [])
+                print(f"Result set {i+1}:")
+                print(f"  Headers ({len(headers)}): {headers}")
+                print(f"  Rows: {len(rows)}")
+                if rows and len(rows) > 0:
+                    print(f"  Sample row: {str(rows[0])[:200]}...")
+            
+            result_data = {
+                'query': query,
+                'description': description,
+                'result': result,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            
+            result_message = NetworkMessage(
+                NetworkMessage.TYPE_RESULT,
+                result_data,
+                self.client_id_var.get() or self.client_id
+            )
+            
+            print(f"DEBUG: Mengirim pesan hasil query...")
+            success = send_message(self.socket, result_message)
+            if success:
+                print("DEBUG: Hasil query berhasil dikirim ke server")
+                self.log("Hasil query berhasil dikirim ke server")
+            else:
+                print("DEBUG: Gagal mengirim hasil query ke server")
+                self.log("Gagal mengirim hasil query ke server")
+            print("="*50)
+        except Exception as e:
+            print(f"ERROR saat mengirim hasil query: {e}")
+            import traceback
+            traceback.print_exc()
+            self.log(f"Error saat mengirim hasil query: {e}")
+    
+    def send_error_result(self, error_message, query_data):
+        """Kirim pesan error ke server"""
+        if not self.connected or not self.socket:
+            return
+        
+        try:
+            error_data = {
+                'query': query_data.get('query', ''),
+                'description': query_data.get('description', ''),
+                'error': error_message,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+            
+            error_message = NetworkMessage(
+                NetworkMessage.TYPE_ERROR,
+                error_data,
+                self.client_id_var.get() or self.client_id
+            )
+            
+            send_message(self.socket, error_message)
+        except Exception as e:
+            self.log(f"Error saat mengirim pesan error: {e}")
+    
+    def update_result_display(self, result):
+        """Update tampilan hasil query"""
+        if not result:
+            return
+        
+        # Format hasil untuk ditampilkan
+        result_str = self.format_result_for_display(result)
+        
+        # Update text widget
+        self.result_text.config(state=tk.NORMAL)
+        self.result_text.delete("1.0", tk.END)
+        self.result_text.insert(tk.END, result_str)
+        self.result_text.config(state=tk.DISABLED)
+    
+    def format_result_for_display(self, result):
+        """Format hasil query untuk tampilan teks"""
+        output = []
+        
+        for result_set in result:
+            headers = result_set.get('headers', [])
+            rows = result_set.get('rows', [])
+            
+            if not headers or not rows:
+                continue
+            
+            # Calculate column widths
+            col_widths = {}
+            for header in headers:
+                col_widths[header] = len(str(header))
+            
+            for row in rows:
+                for header in headers:
+                    value = row.get(header, "")
+                    col_widths[header] = max(col_widths[header], len(str(value)))
+            
+            # Format header row
+            header_row = " | ".join(header.ljust(col_widths[header]) for header in headers)
+            separator = "-" * len(header_row)
+            
+            output.append(header_row)
+            output.append(separator)
+            
+            # Format data rows
+            for row in rows:
+                data_row = " | ".join(str(row.get(header, "")).ljust(col_widths[header]) for header in headers)
+                output.append(data_row)
+            
+            output.append("")
+            output.append(f"Total rows: {len(rows)}")
+            output.append("")
+        
+        return "\n".join(output)
+    
+    def select_database(self):
+        """Buka dialog untuk memilih database"""
+        file_path = filedialog.askopenfilename(
+            title="Select Firebird Database",
+            filetypes=[("Firebird Database", "*.fdb"), ("All Files", "*.*")]
+        )
+        
+        if not file_path:
+            return
+            
+        if not os.path.exists(file_path):
+            messagebox.showerror("Error", f"File tidak ditemukan: {file_path}")
+            return
+        
+        try:
+            # Coba buat koneksi database
+            if self.db_connector:
+                # Gunakan koneksi yang sudah ada dengan path baru
+                self.db_connector.db_path = file_path
+            else:
+                # Buat koneksi baru
+                from common.db_utils import FirebirdConnector
+                self.db_connector = FirebirdConnector(db_path=file_path)
+            
+            # Test koneksi
+            tables = self.db_connector.get_tables()
+            
+            # Update status
+            self.log(f"Terhubung ke database: {os.path.basename(file_path)}")
+            messagebox.showinfo("Database Connected", f"Berhasil terhubung ke {os.path.basename(file_path)}")
+            
+            # Jika terhubung ke server, kirim info database
+            if self.connected and self.socket:
+                self.register_to_server()
+        except Exception as e:
+            messagebox.showerror("Connection Error", f"Gagal terhubung ke database: {e}")
+            self.db_connector = None
+    
+    def test_db_connection(self):
+        """Tes koneksi ke database"""
+        if not self.db_connector:
+            messagebox.showinfo("No Database", "No database selected. Please select a database first.")
+            return
+        
+        try:
+            if self.db_connector.test_connection():
+                tables = self.db_connector.get_tables()
+                table_count = len(tables)
+                
+                messagebox.showinfo(
+                    "Connection Success", 
+                    f"Successfully connected to database.\n\nDatabase: {os.path.basename(self.db_connector.db_path)}\nTables: {table_count}"
+                )
+                
+                self.log(f"Tes koneksi database berhasil. {table_count} tabel ditemukan.")
+            else:
+                messagebox.showerror("Connection Failed", "Failed to connect to database.")
+                self.log("Tes koneksi database gagal.")
+        except Exception as e:
+            self.log(f"Error saat tes koneksi database: {e}")
+            messagebox.showerror("Connection Error", f"Error testing database connection: {e}")
+    
+    def change_db_settings(self):
+        """Ubah pengaturan koneksi database"""
+        if not self.db_connector:
+            messagebox.showinfo("No Database", "No database selected. Please select a database first.")
+            return
+        
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Database Settings")
+        dialog.geometry("300x200")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="Database Path:").pack(padx=10, pady=(10, 0), anchor=tk.W)
+        path_var = tk.StringVar(value=self.db_connector.db_path)
+        path_entry = ttk.Entry(dialog, textvariable=path_var, width=40, state="readonly")
+        path_entry.pack(padx=10, pady=(0, 10), fill=tk.X)
+        
+        ttk.Label(dialog, text="Username:").pack(padx=10, pady=(0, 0), anchor=tk.W)
+        username_var = tk.StringVar(value=self.db_connector.username)
+        username_entry = ttk.Entry(dialog, textvariable=username_var, width=20)
+        username_entry.pack(padx=10, pady=(0, 10), fill=tk.X)
+        
+        ttk.Label(dialog, text="Password:").pack(padx=10, pady=(0, 0), anchor=tk.W)
+        password_var = tk.StringVar(value=self.db_connector.password)
+        password_entry = ttk.Entry(dialog, textvariable=password_var, width=20, show="*")
+        password_entry.pack(padx=10, pady=(0, 10), fill=tk.X)
+        
+        # Button frame
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        def save_settings():
+            username = username_var.get().strip()
+            password = password_var.get().strip()
+            
+            if not username:
+                messagebox.showwarning("Input Error", "Username is required", parent=dialog)
+                return
+            
+            try:
+                self.db_connector.username = username
+                self.db_connector.password = password
+                
+                # Test connection with new settings
+                if self.db_connector.test_connection():
+                    self.log("Pengaturan database berhasil diubah")
+                    messagebox.showinfo("Success", "Database settings updated successfully", parent=dialog)
+                    dialog.destroy()
+                else:
+                    messagebox.showerror("Connection Failed", "Failed to connect with new settings", parent=dialog)
+            except Exception as e:
+                self.log(f"Error saat mengubah pengaturan database: {e}")
+                messagebox.showerror("Error", f"Error updating database settings: {e}", parent=dialog)
+        
+        ttk.Button(button_frame, text="Save", command=save_settings).pack(side=tk.RIGHT)
+        ttk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
+    
+    def exit_app(self):
+        """Keluar dari aplikasi"""
+        if messagebox.askyesno("Exit", "Apakah Anda yakin ingin keluar?"):
+            self.running = False
+            
+            # Disconnect from server
+            if self.connected and self.socket:
+                try:
+                    self.socket.close()
+                except:
+                    pass
+            
+            self.root.destroy()
+            sys.exit(0)
+    
+    def run_test_query(self):
+        """Menjalankan query test langsung dari client"""
+        if not self.db_connector:
+            messagebox.showwarning("Warning", "Pilih database terlebih dahulu")
+            return
+            
+        query_dialog = tk.Toplevel(self.root)
+        query_dialog.title("Run Test Query")
+        query_dialog.geometry("700x500")
+        query_dialog.transient(self.root)
+        query_dialog.grab_set()
+        
+        # Frame untuk query
+        query_frame = ttk.LabelFrame(query_dialog, text="SQL Query")
+        query_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        query_text = scrolledtext.ScrolledText(query_frame, height=10)
+        query_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Default query
+        default_query = "SELECT a.ID, a.SCANUSERID, a.OCID, a.VEHICLECODEID, a.FIELDID, a.BUNCHES, a.LOOSEFRUIT, a.TRANSNO, a.FFBTRANSNO, a.TRANSSTATUS, a.TRANSDATE, a.TRANSTIME, a.UPLOADDATETIME, a.LASTUSER, a.LASTUPDATED, a.RECORDTAG, a.DRIVERNAME, a.DRIVERID, a.HARVESTINGDATE, a.PROCESSFLAG\nFROM FFBLOADINGCROP02 a WHERE ID <= 10"
+        query_text.insert(tk.END, default_query)
+        
+        # Frame untuk tombol
+        button_frame = ttk.Frame(query_dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        def execute_test():
+            query = query_text.get("1.0", tk.END).strip()
+            if not query:
+                messagebox.showwarning("Warning", "Query tidak boleh kosong", parent=query_dialog)
+                return
+                
+            try:
+                print("="*50)
+                print(f"RUN TEST QUERY: Mengeksekusi test query...")
+                print(f"Database: {self.db_connector.db_path}")
+                print(f"Query: {query}")
+                
+                # Eksekusi query
+                result = self.db_connector.execute_query(query)
+                
+                # Log hasil
+                self.log(f"Test query berhasil: {len(result)} result sets")
+                for i, rs in enumerate(result):
+                    headers = rs.get('headers', [])
+                    rows = rs.get('rows', [])
+                    self.log(f"  Result set {i+1}: {len(rows)} rows, {len(headers)} columns")
+                    if len(rows) > 0:
+                        self.log(f"  Sample first row: {list(rows[0].values())[:3]}...")
+                
+                # Debug detail
+                print("DEBUG HASIL QUERY:")
+                for i, rs in enumerate(result):
+                    headers = rs.get('headers', [])
+                    rows = rs.get('rows', [])
+                    print(f"Result set {i+1}:")
+                    print(f"  Headers ({len(headers)}): {headers}")
+                    print(f"  Rows: {len(rows)}")
+                    if len(rows) > 0:
+                        print(f"  First row data: {rows[0]}")
+                
+                # Update tampilan hasil
+                self.last_result = result
+                self.update_result_display(result)
+                
+                # Jika terhubung ke server, kirim hasil ke server
+                if self.connected and self.socket:
+                    print("DEBUG: Client terhubung ke server, mengirim hasil test query...")
+                    result_data = {
+                        'query': query,
+                        'description': 'test_query',
+                        'result': result,
+                        'timestamp': datetime.datetime.now().isoformat()
+                    }
+                    
+                    result_message = NetworkMessage(
+                        NetworkMessage.TYPE_RESULT,
+                        result_data,
+                        self.client_id_var.get() or self.client_id
+                    )
+                    
+                    success = send_message(self.socket, result_message)
+                    if success:
+                        print("DEBUG: Hasil test query berhasil dikirim ke server")
+                        self.log("Hasil test query berhasil dikirim ke server")
+                    else:
+                        print("DEBUG: Gagal mengirim hasil test query ke server")
+                        self.log("Gagal mengirim hasil test query ke server")
+                else:
+                    print("DEBUG: Client tidak terhubung ke server, hasil hanya ditampilkan di client")
+                
+                print("="*50)
+                messagebox.showinfo("Success", "Query berhasil dieksekusi", parent=query_dialog)
+                query_dialog.destroy()
+            except Exception as e:
+                print(f"ERROR saat eksekusi test query: {e}")
+                import traceback
+                traceback.print_exc()
+                self.log(f"Error saat eksekusi test query: {e}")
+                messagebox.showerror("Error", f"Gagal mengeksekusi query: {e}", parent=query_dialog)
+        
+        ttk.Button(button_frame, text="Execute", command=execute_test).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=query_dialog.destroy).pack(side=tk.RIGHT, padx=5)
+        
+        # Focus text area
+        query_text.focus_set()
+    
+    def run(self):
+        """Jalankan aplikasi"""
+        self.root.mainloop()
+
+if __name__ == "__main__":
+    app = ClientApp()
+    app.run() 
