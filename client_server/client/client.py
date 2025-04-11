@@ -55,14 +55,7 @@ class ClientApp:
         db_menu = tk.Menu(menubar, tearoff=0)
         db_menu.add_command(label="Select Database", command=self.select_database)
         db_menu.add_command(label="Test Connection", command=self.test_db_connection)
-        db_menu.add_separator()
-        db_menu.add_command(label="Change Settings", command=self.change_db_settings)
         menubar.add_cascade(label="Database", menu=db_menu)
-        
-        # Tambahkan menu Testing
-        test_menu = tk.Menu(menubar, tearoff=0)
-        test_menu.add_command(label="Run Test Query", command=self.run_test_query)
-        menubar.add_cascade(label="Testing", menu=test_menu)
         
         self.root.config(menu=menubar)
         
@@ -96,12 +89,8 @@ class ClientApp:
         self.select_db_button = ttk.Button(db_frame, text="Select Database", command=self.select_database)
         self.select_db_button.pack(side=tk.RIGHT)
         
-        # Settings frame
-        settings_frame = ttk.LabelFrame(main_frame, text="Settings")
-        settings_frame.pack(fill=tk.X, padx=5, pady=5)
-        
         # Client ID & Name
-        client_frame = ttk.Frame(settings_frame)
+        client_frame = ttk.Frame(status_frame)
         client_frame.pack(fill=tk.X, padx=5, pady=5)
         
         ttk.Label(client_frame, text="Client ID: ").pack(side=tk.LEFT)
@@ -114,13 +103,38 @@ class ClientApp:
         display_name_entry = ttk.Entry(client_frame, textvariable=self.display_name_var, width=30)
         display_name_entry.pack(side=tk.LEFT)
         
-        # Log & History Frame with Notebook
+        # Notebook for logs and results
         notebook = ttk.Notebook(main_frame)
         notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Log Tab
+        log_frame = ttk.Frame(notebook)
+        notebook.add(log_frame, text="Log")
+        
+        # Log toolbar
+        log_toolbar = ttk.Frame(log_frame)
+        log_toolbar.pack(fill=tk.X, padx=5, pady=2)
+        
+        ttk.Button(log_toolbar, text="Clear Log", command=self.clear_log).pack(side=tk.LEFT, padx=2)
+        ttk.Button(log_toolbar, text="Save Log", command=self.save_log).pack(side=tk.LEFT, padx=2)
+        
+        # Add auto-scroll option
+        self.autoscroll_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(log_toolbar, text="Auto-scroll", variable=self.autoscroll_var).pack(side=tk.RIGHT, padx=2)
+        
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=10, font=("Consolas", 9))
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.log_text.config(state=tk.DISABLED)
         
         # Query History Tab
         history_frame = ttk.Frame(notebook)
         notebook.add(history_frame, text="Query History")
+        
+        # History toolbar
+        history_toolbar = ttk.Frame(history_frame)
+        history_toolbar.pack(fill=tk.X, padx=5, pady=2)
+        
+        ttk.Button(history_toolbar, text="Clear History", command=self.clear_history).pack(side=tk.LEFT, padx=2)
         
         self.history_tree = ttk.Treeview(history_frame, columns=("Timestamp", "Query", "Status"), show="headings")
         self.history_tree.heading("Timestamp", text="Timestamp")
@@ -131,21 +145,19 @@ class ClientApp:
         self.history_tree.column("Status", width=100)
         self.history_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Last Result Tab
+        # Add vertical scrollbar to history
+        history_vsb = ttk.Scrollbar(history_frame, orient="vertical", command=self.history_tree.yview)
+        self.history_tree.configure(yscrollcommand=history_vsb.set)
+        history_vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.history_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5, side=tk.LEFT)
+        
+        # Last Result Tab (if needed)
         result_frame = ttk.Frame(notebook)
         notebook.add(result_frame, text="Last Result")
         
-        self.result_text = scrolledtext.ScrolledText(result_frame, height=10)
+        self.result_text = scrolledtext.ScrolledText(result_frame, height=10, font=("Consolas", 10))
         self.result_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.result_text.config(state=tk.DISABLED)
-        
-        # Log Tab
-        log_frame = ttk.Frame(notebook)
-        notebook.add(log_frame, text="Log")
-        
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=10)
-        self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        self.log_text.config(state=tk.DISABLED)
         
         # Konfigurasi closing event
         self.root.protocol("WM_DELETE_WINDOW", self.exit_app)
@@ -179,10 +191,14 @@ class ClientApp:
         
         self.log_text.config(state=tk.NORMAL)
         self.log_text.insert(tk.END, log_message)
-        self.log_text.see(tk.END)
+        if self.autoscroll_var.get():
+            self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
         
         print(log_message, end="")
+        
+        # Save log to file for persistence
+        self.append_to_log_file(log_message)
     
     def connect_to_server_dialog(self):
         """Dialog untuk terhubung ke server"""
@@ -849,6 +865,51 @@ class ClientApp:
     def run(self):
         """Jalankan aplikasi"""
         self.root.mainloop()
+
+    def clear_log(self):
+        """Bersihkan log"""
+        self.log_text.config(state=tk.NORMAL)
+        self.log_text.delete("1.0", tk.END)
+        self.log_text.config(state=tk.DISABLED)
+    
+    def save_log(self):
+        """Simpan log ke file"""
+        filename = filedialog.asksaveasfilename(
+            title="Save Log",
+            filetypes=[("Text files", "*.txt"), ("Log files", "*.log"), ("All files", "*.*")],
+            defaultextension=".log"
+        )
+        
+        if not filename:
+            return
+        
+        try:
+            with open(filename, 'w') as f:
+                f.write(self.log_text.get("1.0", tk.END))
+            
+            messagebox.showinfo("Save Log", f"Log berhasil disimpan ke {filename}")
+        except Exception as e:
+            messagebox.showerror("Save Error", f"Gagal menyimpan log: {e}")
+    
+    def append_to_log_file(self, log_message):
+        """Tambahkan log ke file secara otomatis"""
+        try:
+            log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            
+            today = datetime.datetime.now().strftime("%Y-%m-%d")
+            log_file = os.path.join(log_dir, f"client_{today}.log")
+            
+            with open(log_file, 'a') as f:
+                f.write(log_message)
+        except Exception as e:
+            print(f"Error writing to log file: {e}")
+    
+    def clear_history(self):
+        """Bersihkan history query"""
+        for item in self.history_tree.get_children():
+            self.history_tree.delete(item)
+        self.query_history = []
 
 if __name__ == "__main__":
     app = ClientApp()
