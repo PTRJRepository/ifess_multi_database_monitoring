@@ -19,6 +19,9 @@ sys.path.append(parent_dir)
 from common.network import NetworkMessage, send_message, receive_message, DEFAULT_PORT
 from common.db_utils import FirebirdConnector
 
+# Path konfigurasi
+CONFIG_FILE = os.path.join(current_dir, "client_config.json")
+
 class ClientApp:
     """Aplikasi client yang terhubung ke server dan menjalankan query di database lokal"""
     def __init__(self):
@@ -34,8 +37,91 @@ class ClientApp:
         self.last_result = None
         self.query_history = []
         
+        # Parameter untuk auto-reconnect
+        self.auto_reconnect = False
+        self.reconnect_interval = 5  # detik
+        self.reconnect_thread = None
+        self.is_connecting = False
+        
+        # Load konfigurasi jika ada
+        self.load_config()
+        
         # Inisialisasi UI
         self.init_ui()
+        
+        # Coba koneksi otomatis ke database jika ada di konfigurasi
+        self.root.after(500, self.auto_connect_to_database)
+        
+        # Memulai auto-reconnect jika diaktifkan
+        if self.auto_reconnect and self.server_address:
+            self.start_auto_reconnect()
+    
+    def load_config(self):
+        """Memuat konfigurasi dari file"""
+        try:
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, 'r') as f:
+                    config = json.load(f)
+                
+                # Load server config
+                self.server_address = config.get('server_address')
+                self.server_port = config.get('server_port', DEFAULT_PORT)
+                self.auto_reconnect = config.get('auto_reconnect', False)
+                self.reconnect_interval = config.get('reconnect_interval', 5)
+                
+                # Load client config
+                if 'client_id' in config:
+                    self.client_id = config['client_id']
+                if 'display_name' in config:
+                    self.display_name = config['display_name']
+                
+                # Load database config
+                db_config = config.get('database', {})
+                if db_config and 'path' in db_config and os.path.exists(db_config['path']):
+                    print(f"Debug: Found database config: {db_config['path']}")
+                    try:
+                        self.db_connector = FirebirdConnector(
+                            db_path=db_config['path'],
+                            username=db_config.get('username', 'SYSDBA'),
+                            password=db_config.get('password', 'masterkey')
+                        )
+                        print("Debug: Database connector initialized from config")
+                    except Exception as e:
+                        print(f"Error initializing database from config: {e}")
+        except Exception as e:
+            print(f"Error loading config: {e}")
+    
+    def save_config(self):
+        """Menyimpan konfigurasi ke file"""
+        try:
+            config = {
+                'server_address': self.server_address,
+                'server_port': self.server_port,
+                'auto_reconnect': self.auto_reconnect,
+                'reconnect_interval': self.reconnect_interval,
+                'client_id': self.client_id_var.get() or self.client_id,
+                'display_name': self.display_name_var.get() or self.display_name,
+                'database': {}
+            }
+            
+            # Simpan konfigurasi database jika ada
+            if self.db_connector:
+                config['database'] = {
+                    'path': self.db_connector.db_path,
+                    'username': self.db_connector.username,
+                    'password': self.db_connector.password
+                }
+            
+            # Pastikan direktori ada
+            os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+            
+            # Tulis ke file
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(config, f, indent=2)
+            
+            print(f"Config saved to {CONFIG_FILE}")
+        except Exception as e:
+            print(f"Error saving config: {e}")
     
     def init_ui(self):
         """Inisialisasi antarmuka pengguna"""
@@ -46,7 +132,7 @@ class ClientApp:
         # Menu bar
         menubar = tk.Menu(self.root)
         conn_menu = tk.Menu(menubar, tearoff=0)
-        conn_menu.add_command(label="Connect to Server", command=self.connect_to_server_dialog)
+        conn_menu.add_command(label="Connect to Server", command=self.connect_to_server_from_ui)
         conn_menu.add_command(label="Disconnect", command=self.disconnect_from_server)
         conn_menu.add_separator()
         conn_menu.add_command(label="Exit", command=self.exit_app)
@@ -56,6 +142,11 @@ class ClientApp:
         db_menu.add_command(label="Select Database", command=self.select_database)
         db_menu.add_command(label="Test Connection", command=self.test_db_connection)
         menubar.add_cascade(label="Database", menu=db_menu)
+        
+        config_menu = tk.Menu(menubar, tearoff=0)
+        config_menu.add_command(label="Save Configuration", command=self.save_config)
+        config_menu.add_command(label="Test Query", command=self.run_test_query)
+        menubar.add_cascade(label="Config", menu=config_menu)
         
         self.root.config(menu=menubar)
         
@@ -67,7 +158,7 @@ class ClientApp:
         status_frame = ttk.LabelFrame(main_frame, text="Status")
         status_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        # Server connection status
+        # Server connection frame dengan input fields
         server_frame = ttk.Frame(status_frame)
         server_frame.pack(fill=tk.X, padx=5, pady=5)
         
@@ -75,7 +166,25 @@ class ClientApp:
         self.server_status = ttk.Label(server_frame, text="Disconnected")
         self.server_status.pack(side=tk.LEFT)
         
-        self.connect_button = ttk.Button(server_frame, text="Connect", command=self.connect_to_server_dialog)
+        # Input server
+        ttk.Label(server_frame, text="Host:").pack(side=tk.LEFT, padx=(10, 2))
+        self.server_address_var = tk.StringVar(value=self.server_address or "localhost")
+        server_entry = ttk.Entry(server_frame, textvariable=self.server_address_var, width=15)
+        server_entry.pack(side=tk.LEFT)
+        
+        ttk.Label(server_frame, text="Port:").pack(side=tk.LEFT, padx=(5, 2))
+        self.server_port_var = tk.StringVar(value=str(self.server_port))
+        port_entry = ttk.Entry(server_frame, textvariable=self.server_port_var, width=6)
+        port_entry.pack(side=tk.LEFT)
+        
+        # Auto-reconnect checkbox
+        self.auto_reconnect_var = tk.BooleanVar(value=self.auto_reconnect)
+        auto_reconnect_check = ttk.Checkbutton(server_frame, text="Auto-reconnect", 
+                                             variable=self.auto_reconnect_var,
+                                             command=self.toggle_auto_reconnect)
+        auto_reconnect_check.pack(side=tk.LEFT, padx=(10, 0))
+        
+        self.connect_button = ttk.Button(server_frame, text="Connect", command=self.connect_to_server_from_ui)
         self.connect_button.pack(side=tk.RIGHT)
         
         # Database connection status
@@ -85,6 +194,11 @@ class ClientApp:
         ttk.Label(db_frame, text="Database: ").pack(side=tk.LEFT)
         self.db_status = ttk.Label(db_frame, text="Not Selected")
         self.db_status.pack(side=tk.LEFT)
+        
+        # Loading indicator
+        self.loading_var = tk.StringVar(value="")
+        self.loading_label = ttk.Label(db_frame, textvariable=self.loading_var)
+        self.loading_label.pack(side=tk.LEFT, padx=10)
         
         self.select_db_button = ttk.Button(db_frame, text="Select Database", command=self.select_database)
         self.select_db_button.pack(side=tk.RIGHT)
@@ -165,6 +279,58 @@ class ClientApp:
         # Update UI setiap 1 detik
         self.update_ui()
     
+    def toggle_auto_reconnect(self):
+        """Toggle status auto-reconnect"""
+        self.auto_reconnect = self.auto_reconnect_var.get()
+        
+        if self.auto_reconnect and not self.connected and self.server_address:
+            self.start_auto_reconnect()
+        elif not self.auto_reconnect and self.reconnect_thread:
+            # Stop reconnect thread
+            self.auto_reconnect = False
+    
+    def start_auto_reconnect(self):
+        """Memulai thread untuk auto-reconnect"""
+        if self.reconnect_thread and self.reconnect_thread.is_alive():
+            return
+        
+        self.auto_reconnect = True
+        self.reconnect_thread = threading.Thread(target=self.auto_reconnect_loop)
+        self.reconnect_thread.daemon = True
+        self.reconnect_thread.start()
+        self.log("Auto-reconnect diaktifkan")
+    
+    def auto_reconnect_loop(self):
+        """Loop untuk mencoba auto-reconnect ke server"""
+        while self.running and self.auto_reconnect and not self.connected:
+            if not self.is_connecting:
+                address = self.server_address_var.get().strip()
+                try:
+                    port = int(self.server_port_var.get().strip())
+                except:
+                    port = DEFAULT_PORT
+                
+                self.log(f"Mencoba auto-reconnect ke {address}:{port}...")
+                self.connect_to_server(address, port, auto_reconnect=True)
+            
+            # Tunggu interval
+            for i in range(self.reconnect_interval):
+                if not self.running or not self.auto_reconnect or self.connected:
+                    break
+                time.sleep(1)
+    
+    def update_loading_indicator(self):
+        """Update indikator loading"""
+        animation = ["|", "/", "-", "\\"]
+        i = 0
+        
+        while self.is_connecting and self.running:
+            self.loading_var.set(f"Connecting... {animation[i]}")
+            i = (i + 1) % len(animation)
+            time.sleep(0.2)
+        
+        self.loading_var.set("")
+    
     def update_ui(self):
         """Update antarmuka pengguna secara periodik"""
         if self.connected:
@@ -172,7 +338,7 @@ class ClientApp:
             self.connect_button.config(text="Disconnect", command=self.disconnect_from_server)
         else:
             self.server_status.config(text="Disconnected")
-            self.connect_button.config(text="Connect", command=self.connect_to_server_dialog)
+            self.connect_button.config(text="Connect", command=self.connect_to_server_from_ui)
         
         if self.db_connector:
             self.db_status.config(text=f"Connected: {os.path.basename(self.db_connector.db_path)}")
@@ -200,56 +366,44 @@ class ClientApp:
         # Save log to file for persistence
         self.append_to_log_file(log_message)
     
-    def connect_to_server_dialog(self):
-        """Dialog untuk terhubung ke server"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Connect to Server")
-        dialog.geometry("300x150")
-        dialog.transient(self.root)
-        dialog.grab_set()
+    def connect_to_server_from_ui(self):
+        """Menghubungkan ke server dari input UI"""
+        if self.connected:
+            self.disconnect_from_server()
+            return
         
-        ttk.Label(dialog, text="Server Address:").pack(padx=10, pady=(10, 0), anchor=tk.W)
-        address_var = tk.StringVar(value=self.server_address or "localhost")
-        address_entry = ttk.Entry(dialog, textvariable=address_var, width=30)
-        address_entry.pack(padx=10, pady=(0, 10), fill=tk.X)
+        address = self.server_address_var.get().strip()
+        port_str = self.server_port_var.get().strip()
         
-        ttk.Label(dialog, text="Port:").pack(padx=10, pady=(0, 0), anchor=tk.W)
-        port_var = tk.StringVar(value=str(self.server_port))
-        port_entry = ttk.Entry(dialog, textvariable=port_var, width=10)
-        port_entry.pack(padx=10, pady=(0, 10), fill=tk.X)
+        if not address:
+            messagebox.showwarning("Input Error", "Server address is required")
+            return
         
-        # Button frame
-        button_frame = ttk.Frame(dialog)
-        button_frame.pack(fill=tk.X, padx=10, pady=10)
+        try:
+            port = int(port_str)
+        except ValueError:
+            messagebox.showwarning("Input Error", "Port must be a number")
+            return
         
-        def do_connect():
-            address = address_var.get().strip()
-            port = port_var.get().strip()
-            
-            if not address:
-                messagebox.showwarning("Input Error", "Server address is required", parent=dialog)
-                return
-            
-            try:
-                port = int(port)
-            except ValueError:
-                messagebox.showwarning("Input Error", "Port must be a number", parent=dialog)
-                return
-            
-            dialog.destroy()
-            self.connect_to_server(address, port)
-        
-        ttk.Button(button_frame, text="Connect", command=do_connect).pack(side=tk.RIGHT)
-        ttk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
-        
-        # Focus entry
-        address_entry.focus_set()
+        # Hubungkan ke server
+        self.connect_to_server(address, port)
     
-    def connect_to_server(self, address, port):
+    def connect_to_server(self, address, port, auto_reconnect=False):
         """Terhubung ke server"""
         if self.connected:
-            messagebox.showinfo("Already Connected", "Already connected to server. Please disconnect first.")
+            if not auto_reconnect:
+                messagebox.showinfo("Already Connected", "Already connected to server. Please disconnect first.")
             return
+        
+        if self.is_connecting:
+            return
+        
+        self.is_connecting = True
+        
+        # Mulai indikator loading
+        loading_thread = threading.Thread(target=self.update_loading_indicator)
+        loading_thread.daemon = True
+        loading_thread.start()
         
         try:
             # Buat socket
@@ -271,9 +425,13 @@ class ClientApp:
             self.receive_thread.start()
             
             self.log(f"Terhubung ke server: {address}:{port}")
+            
+            # Simpan konfigurasi
+            self.save_config()
         except Exception as e:
             self.log(f"Error saat terhubung ke server: {e}")
-            messagebox.showerror("Connection Error", f"Tidak dapat terhubung ke server: {e}")
+            if not auto_reconnect:
+                messagebox.showerror("Connection Error", f"Tidak dapat terhubung ke server: {e}")
             
             # Reset status
             self.connected = False
@@ -283,7 +441,34 @@ class ClientApp:
                 except:
                     pass
                 self.socket = None
+        finally:
+            self.is_connecting = False
     
+    def auto_connect_to_database(self):
+        """Mencoba terhubung otomatis ke database dari konfigurasi"""
+        if self.db_connector:
+            try:
+                # Cek apakah database ada
+                if not os.path.exists(self.db_connector.db_path):
+                    self.log(f"File database tidak ditemukan: {self.db_connector.db_path}")
+                    self.db_connector = None
+                    return
+                
+                # Coba connect ke database
+                if self.db_connector.test_connection():
+                    self.log(f"Berhasil terhubung ke database: {os.path.basename(self.db_connector.db_path)}")
+                else:
+                    self.log("Gagal terhubung ke database dari konfigurasi")
+                    self.db_connector = None
+            except Exception as e:
+                self.log(f"Error saat auto-connect ke database: {e}")
+                self.db_connector = None
+        
+        # Jika sukses terhubung ke database, dan auto-reconnect diaktifkan, 
+        # coba terhubung ke server
+        if self.db_connector and self.auto_reconnect and self.server_address and not self.connected:
+            self.start_auto_reconnect()
+
     def register_to_server(self):
         """Mendaftarkan client ke server"""
         if not self.connected or not self.socket:
@@ -337,6 +522,10 @@ class ClientApp:
                 self.socket = None
             
             self.log("Terputus dari server")
+            
+            # Mulai auto-reconnect jika diaktifkan
+            if self.auto_reconnect:
+                self.start_auto_reconnect()
         except Exception as e:
             self.log(f"Error saat memutuskan koneksi: {e}")
     
@@ -391,10 +580,18 @@ class ClientApp:
                     except:
                         pass
                     self.socket = None
+                
+                # Mulai auto-reconnect jika diaktifkan
+                if self.auto_reconnect:
+                    self.start_auto_reconnect()
         except Exception as e:
             self.log(f"Error di thread receive_messages: {e}")
         finally:
             self.connected = False
+            
+            # Mulai auto-reconnect jika diaktifkan
+            if self.auto_reconnect:
+                self.start_auto_reconnect()
     
     def send_pong(self):
         """Kirim respons pong ke server"""
@@ -651,6 +848,9 @@ class ClientApp:
             self.log(f"Terhubung ke database: {os.path.basename(file_path)}")
             messagebox.showinfo("Database Connected", f"Berhasil terhubung ke {os.path.basename(file_path)}")
             
+            # Simpan konfigurasi
+            self.save_config()
+            
             # Jika terhubung ke server, kirim info database
             if self.connected and self.socket:
                 self.register_to_server()
@@ -742,6 +942,9 @@ class ClientApp:
     def exit_app(self):
         """Keluar dari aplikasi"""
         if messagebox.askyesno("Exit", "Apakah Anda yakin ingin keluar?"):
+            # Simpan konfigurasi sebelum keluar
+            self.save_config()
+            
             self.running = False
             
             # Disconnect from server
