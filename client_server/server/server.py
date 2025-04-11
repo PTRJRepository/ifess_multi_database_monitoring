@@ -51,15 +51,11 @@ class ServerApp:
         self.root.title("Firebird Query Server")
         self.root.geometry("1200x900")
         
+        # Set tema dan style untuk mirip MSSQL
+        self.configure_mssql_style()
+        
         # Menu bar
         menubar = tk.Menu(self.root)
-        server_menu = tk.Menu(menubar, tearoff=0)
-        server_menu.add_command(label="Start Server", command=self.start_server)
-        server_menu.add_command(label="Stop Server", command=self.stop_server)
-        server_menu.add_separator()
-        server_menu.add_command(label="Exit", command=self.exit_app)
-        menubar.add_cascade(label="Server", menu=server_menu)
-        
         query_menu = tk.Menu(menubar, tearoff=0)
         query_menu.add_command(label="Send Query", command=self.send_query_ui)
         query_menu.add_command(label="Load Query from File", command=self.load_query)
@@ -82,8 +78,23 @@ class ServerApp:
         status_frame = ttk.LabelFrame(left_frame, text="Server Status")
         status_frame.pack(fill=tk.X, padx=5, pady=5)
         
-        self.server_status = ttk.Label(status_frame, text="Server: Stopped")
-        self.server_status.pack(pady=5)
+        # Tampilan status server + tombol
+        server_status_container = ttk.Frame(status_frame)
+        server_status_container.pack(fill=tk.X, pady=5, padx=5)
+
+        self.server_status = ttk.Label(server_status_container, text="Server: Stopped")
+        self.server_status.pack(side=tk.LEFT, pady=5)
+
+        # Tombol dinamis untuk start/stop server
+        self.server_button_frame = ttk.Frame(server_status_container)
+        self.server_button_frame.pack(side=tk.RIGHT, pady=5)
+
+        self.start_server_button = ttk.Button(self.server_button_frame, text="Start Server", 
+                                            command=self.start_server, width=15)
+        self.start_server_button.pack(side=tk.RIGHT, padx=(0, 5))
+        self.stop_server_button = ttk.Button(self.server_button_frame, text="Stop Server", 
+                                           command=self.stop_server, width=15, state=tk.DISABLED)
+        self.stop_server_button.pack(side=tk.RIGHT)
         
         # Daftar client
         clients_frame = ttk.LabelFrame(left_frame, text="Connected Clients")
@@ -227,6 +238,63 @@ class ServerApp:
         # Update UI setiap 1 detik
         self.update_ui()
     
+    def configure_mssql_style(self):
+        """Konfigurasi style untuk tampilan mirip MSSQL"""
+        style = ttk.Style()
+        
+        # Warna dasar MSSQL
+        bg_color = "#f0f0f0"
+        header_bg = "#e1e1e1"
+        selected_bg = "#d0d7e5"
+        
+        # Konfigurasi style untuk treeview
+        style.configure("Treeview", 
+                      background=bg_color,
+                      fieldbackground=bg_color,
+                      foreground="black",
+                      rowheight=24)
+        
+        style.configure("Treeview.Heading", 
+                      background=header_bg,
+                      foreground="black",
+                      font=("Segoe UI", 9, "bold"))
+        
+        style.map("Treeview", 
+                background=[("selected", selected_bg)],
+                foreground=[("selected", "black")])
+        
+        # Styling untuk tab dan notebook
+        style.configure("TNotebook", background=bg_color)
+        style.configure("TNotebook.Tab", background=header_bg, padding=[10, 4])
+        style.map("TNotebook.Tab", 
+                background=[("selected", bg_color)],
+                foreground=[("selected", "black")])
+        
+        # Style untuk button
+        style.configure("TButton", 
+                      background=header_bg,
+                      foreground="black", 
+                      padding=4)
+        
+        # Style untuk label frame
+        style.configure("TLabelframe", 
+                      background=bg_color)
+        style.configure("TLabelframe.Label", 
+                      foreground="black",
+                      font=("Segoe UI", 9, "bold"))
+        
+        # Style khusus untuk hasil query
+        style.configure("ISQL.Treeview", 
+                      background="white",
+                      fieldbackground="white", 
+                      font=("Consolas", 9))
+        style.configure("ISQL.Treeview.Heading", 
+                      background="#e8e8e8", 
+                      font=("Segoe UI", 9, "bold"))
+        style.map("ISQL.Treeview", 
+                background=[("selected", "#ccddff")],
+                foreground=[("selected", "black")])
+    
     def update_ui(self):
         """Update UI secara periodik"""
         self.update_client_list()
@@ -316,6 +384,10 @@ class ServerApp:
             self.log(f"Server berjalan di {self.host}:{self.port}")
             self.server_status.config(text=f"Server: Running on port {self.port}")
             
+            # Update tombol
+            self.start_server_button.config(state=tk.DISABLED)
+            self.stop_server_button.config(state=tk.NORMAL)
+            
             # Mulai thread untuk menerima koneksi
             self.accept_thread = threading.Thread(target=self.accept_connections)
             self.accept_thread.daemon = True
@@ -354,6 +426,11 @@ class ServerApp:
         
         self.log("Server dihentikan")
         self.server_status.config(text="Server: Stopped")
+        
+        # Update tombol
+        self.start_server_button.config(state=tk.NORMAL)
+        self.stop_server_button.config(state=tk.DISABLED)
+        
         self.update_client_list()
     
     def accept_connections(self):
@@ -710,29 +787,37 @@ class ServerApp:
                     result_frame_inner = ttk.LabelFrame(result_frame, text=f"Result Set {i+1}")
                     result_frame_inner.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
                     
-                    # Tambahkan toolbar untuk search
-                    search_frame = ttk.Frame(result_frame_inner)
-                    search_frame.pack(fill=tk.X, side=tk.TOP, padx=5, pady=5)
+                    # Controls frame untuk toolbar
+                    controls_frame = ttk.Frame(result_frame_inner)
+                    controls_frame.pack(fill=tk.X, padx=5, pady=5)
                     
-                    ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=(0, 5))
+                    # Tambahkan tombol untuk membuka di jendela baru - ini akan diatur nanti
+                    open_window_button = ttk.Button(controls_frame, text="Open in New Window", width=20)
+                    open_window_button.pack(side=tk.RIGHT, padx=5)
+                    
+                    # Tambahkan search controls
+                    search_frame = ttk.LabelFrame(controls_frame, text="Search")
+                    search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+                    
                     search_var = tk.StringVar()
-                    search_entry = ttk.Entry(search_frame, textvariable=search_var, width=30)
-                    search_entry.pack(side=tk.LEFT, padx=5)
-                    
                     search_column_var = tk.StringVar(value="All Columns")
-                    search_column = ttk.Combobox(search_frame, textvariable=search_column_var, width=15)
-                    search_column['values'] = ["All Columns"] + headers
-                    search_column.current(0)
-                    search_column.pack(side=tk.LEFT, padx=5)
+                    search_status_var = tk.StringVar()
                     
-                    # Status pencarian
-                    search_status_var = tk.StringVar(value="")
-                    search_status = ttk.Label(search_frame, textvariable=search_status_var)
-                    search_status.pack(side=tk.RIGHT, padx=5)
+                    ttk.Entry(search_frame, textvariable=search_var, width=30).pack(side=tk.LEFT, padx=5, pady=2)
                     
-                    # Tambah paging jika rows terlalu banyak
-                    if len(rows) > 5000:
-                        page_size = 5000
+                    # Column selector
+                    search_columns = ["All Columns"] + headers
+                    ttk.Combobox(search_frame, textvariable=search_column_var, values=search_columns, width=15).pack(side=tk.LEFT, padx=5, pady=2)
+                    
+                    # Search button
+                    ttk.Button(search_frame, text="Search", command=lambda: search_tree()).pack(side=tk.LEFT, padx=5, pady=2)
+                    
+                    # Search status
+                    ttk.Label(search_frame, textvariable=search_status_var).pack(side=tk.LEFT, padx=5, pady=2)
+                    
+                    # Pagination setup
+                    if len(rows) > 100:
+                        page_size = 100
                         truncated = True
                         
                         page_var = tk.IntVar(value=1)
@@ -783,17 +868,28 @@ class ServerApp:
                     self.log(f"Rendering result set {i+1}: {len(rows)} rows with columns: {', '.join(headers)}")
                     
                     try:
-                        # Buat treeview untuk hasil dengan style yang mirip ISQL
-                        tree = ttk.Treeview(tree_container, columns=headers, show="headings", style="ISQL.Treeview")
+                        # Buat treeview dengan scrollbar
+                        treeview_frame = ttk.Frame(tree_container)
+                        treeview_frame.pack(fill=tk.BOTH, expand=True)
                         
-                        # Sesuaikan style untuk tampilan mirip ISQL
-                        style = ttk.Style()
-                        style.configure("ISQL.Treeview", background="white", foreground="black", rowheight=25)
-                        style.configure("ISQL.Treeview.Heading", font=('Calibri', 10, 'bold'), background="#E8E8E8")
+                        # Buat treeview untuk hasil dengan style mirip MSSQL
+                        tree = ttk.Treeview(treeview_frame, columns=headers, show="headings", style="ISQL.Treeview")
+                        
+                        # Tambahkan scrollbar vertikal
+                        vsb = ttk.Scrollbar(treeview_frame, orient="vertical", command=tree.yview)
+                        tree.configure(yscrollcommand=vsb.set)
+                        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+                        
+                        # Tambahkan scrollbar horizontal
+                        hsb = ttk.Scrollbar(tree_container, orient="horizontal", command=tree.xview)
+                        tree.configure(xscrollcommand=hsb.set)
+                        hsb.pack(side=tk.BOTTOM, fill=tk.X)
+                        
+                        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
                         
                         # Set header
                         for header in headers:
-                            tree.heading(header, text=header)
+                            tree.heading(header, text=header, anchor=tk.W)
                             # Set lebar kolom berdasarkan konten
                             max_width = len(str(header)) * 10
                             for row_idx, row in enumerate(rows):
@@ -803,7 +899,10 @@ class ServerApp:
                                 width = len(val) * 8
                                 if width > max_width:
                                     max_width = width
-                            tree.column(header, width=min(max_width, 250))
+                            tree.column(header, width=min(max_width, 300), stretch=True, anchor=tk.W)
+                        
+                        # Sekarang kita dapat mengatur tombol open in new window
+                        open_window_button.config(command=lambda t=tree, h=headers, r=rows: self.open_result_in_new_window(t, h, r))
                         
                         # Fungsi untuk menampilkan halaman tertentu
                         def show_page():
@@ -898,8 +997,12 @@ class ServerApp:
                                               [tree.item(row_id, tags=()) for row_id in tree.get_children()]]
                                 ).pack(side=tk.LEFT, padx=5)
                         
-                        # Bind event saat tekan Enter di search field
-                        search_entry.bind("<Return>", lambda event: search_tree())
+                        # Pastikan search_entry tersedia sebelum binding
+                        for child in search_frame.winfo_children():
+                            if isinstance(child, ttk.Entry):
+                                search_entry = child
+                                search_entry.bind("<Return>", lambda event: search_tree())
+                                break
                         
                         # Tambahkan scrollbar vertikal
                         vsb = ttk.Scrollbar(tree_container, orient="vertical", command=tree.yview)
@@ -1762,6 +1865,215 @@ class ServerApp:
                 return True
         
         return False
+
+    def open_result_in_new_window(self, parent_tree, headers, all_rows, page_size=100):
+        """Buka hasil query di jendela baru dengan lebih banyak ruang"""
+        window = tk.Toplevel(self.root)
+        window.title("Query Results")
+        window.geometry("1000x600")
+        
+        # Buat frame utama
+        main_frame = ttk.Frame(window)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Buat frame untuk treeview
+        tree_frame = ttk.Frame(main_frame)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Buat frame untuk scrollbar
+        scroll_frame = ttk.Frame(tree_frame)
+        scroll_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Buat treeview dengan scrollbar
+        tree = ttk.Treeview(scroll_frame, columns=headers, show="headings", style="ISQL.Treeview")
+        
+        # Tambahkan scrollbar vertikal
+        v_scrollbar = ttk.Scrollbar(scroll_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=v_scrollbar.set)
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Tambahkan scrollbar horizontal
+        h_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
+        tree.configure(xscrollcommand=h_scrollbar.set)
+        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Set header dan kolom
+        try:
+            for header in headers:
+                tree.heading(header, text=header, anchor=tk.W)
+                # Gunakan lebar kolom dari tree asal jika tersedia
+                if parent_tree:
+                    width = parent_tree.column(header, "width")
+                    tree.column(header, width=width, stretch=tk.YES, anchor=tk.W)
+                else:
+                    # Default jika parent_tree tidak tersedia
+                    max_width = len(str(header)) * 10
+                    for row_idx, row in enumerate(all_rows):
+                        if row_idx >= 100:  # Hanya cek 100 baris pertama untuk efisiensi
+                            break
+                        val = str(row.get(header, ""))
+                        width = len(val) * 8
+                        if width > max_width:
+                            max_width = width
+                    tree.column(header, width=min(max_width, 300), stretch=tk.YES, anchor=tk.W)
+        except Exception as e:
+            print(f"Error setting column width: {e}")
+            # Fallback ke lebar default
+            for header in headers:
+                tree.column(header, width=150, stretch=tk.YES, anchor=tk.W)
+        
+        # Paging
+        total_rows = len(all_rows)
+        total_pages = (total_rows + page_size - 1) // page_size
+        page_var = tk.IntVar(value=1)
+        
+        # Controls frame
+        controls_frame = ttk.Frame(main_frame)
+        controls_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Search frame
+        search_frame = ttk.LabelFrame(controls_frame, text="Search")
+        search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        
+        search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_frame, textvariable=search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=5)
+        
+        # Dropdown untuk memilih kolom pencarian
+        search_column_var = tk.StringVar(value="All Columns")
+        search_columns = ["All Columns"] + headers
+        search_column_dropdown = ttk.Combobox(search_frame, textvariable=search_column_var, values=search_columns, width=15)
+        search_column_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # Status variable untuk hasil pencarian
+        status_var = tk.StringVar(value=f"Total rows: {total_rows}")
+        
+        # Search button dan fungsi pencarian
+        def search_in_window():
+            search_text = search_var.get().strip().lower()
+            if not search_text:
+                status_var.set(f"Total rows: {total_rows}")
+                return
+            
+            search_col = search_column_var.get()
+            found_count = 0
+            
+            # Reset semua highlight
+            for row_id in tree.get_children():
+                tree.item(row_id, tags=())
+            
+            # Cari di semua baris yang ditampilkan
+            for row_id in tree.get_children():
+                values = tree.item(row_id, "values")
+                
+                found = False
+                if search_col == "All Columns":
+                    # Cari di semua kolom
+                    for val in values:
+                        if search_text in str(val).lower():
+                            found = True
+                            found_count += 1
+                            break
+                else:
+                    # Cari di kolom tertentu
+                    col_idx = headers.index(search_col)
+                    if col_idx < len(values) and search_text in str(values[col_idx]).lower():
+                        found = True
+                        found_count += 1
+                
+                if found:
+                    tree.item(row_id, tags=("found",))
+            
+            # Set style untuk highlight hasil pencarian
+            tree.tag_configure("found", background="#ffffcc")
+            
+            # Update status
+            status_var.set(f"Total rows: {total_rows} | Found: {found_count} matches")
+        
+        search_button = ttk.Button(search_frame, text="Search", command=search_in_window)
+        search_button.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # Clear button
+        clear_button = ttk.Button(search_frame, text="Clear", 
+                            command=lambda: [search_var.set(""), status_var.set(f"Total rows: {total_rows}"), 
+                                          [tree.item(row_id, tags=()) for row_id in tree.get_children()]])
+        clear_button.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # Bind enter key pada search entry
+        search_entry.bind("<Return>", lambda e: search_in_window())
+        
+        # Paging frame
+        paging_frame = ttk.LabelFrame(controls_frame, text="Page Navigation")
+        paging_frame.pack(side=tk.RIGHT, padx=5)
+        
+        # Fungsi untuk menampilkan halaman
+        def show_page():
+            # Hapus semua baris yang ada
+            for item in tree.get_children():
+                tree.delete(item)
+            
+            # Hitung rentang data untuk halaman ini
+            current_page = page_var.get()
+            start_idx = (current_page - 1) * page_size
+            end_idx = min(start_idx + page_size, total_rows)
+            
+            # Update label halaman
+            page_label.config(text=f"{current_page}/{total_pages}")
+            
+            # Tambahkan data untuk halaman ini
+            for idx in range(start_idx, end_idx):
+                row = all_rows[idx]
+                values = []
+                for header in headers:
+                    values.append(row.get(header, ""))
+                tree.insert("", tk.END, values=values)
+            
+            # Update status
+            status_var.set(f"Total rows: {total_rows} | Showing rows {start_idx+1}-{end_idx}")
+        
+        # Dialog untuk menuju ke halaman tertentu
+        def show_go_page_dialog():
+            page = simpledialog.askinteger("Go to Page", f"Enter page number (1-{total_pages}):", 
+                                         minvalue=1, maxvalue=total_pages)
+            if page:
+                page_var.set(page)
+                show_page()
+        
+        # Navigation buttons
+        ttk.Button(paging_frame, text="◀◀", width=3, 
+                 command=lambda: page_var.set(1) or show_page()).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(paging_frame, text="◀", width=2, 
+                 command=lambda: page_var.set(max(1, page_var.get() - 1)) or show_page()).pack(side=tk.LEFT, padx=2)
+        
+        # Page indicator
+        page_label = ttk.Label(paging_frame, text=f"1/{total_pages}")
+        page_label.pack(side=tk.LEFT, padx=5)
+        
+        # Next buttons
+        ttk.Button(paging_frame, text="▶", width=2,
+                 command=lambda: page_var.set(min(total_pages, page_var.get() + 1)) or show_page()).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(paging_frame, text="▶▶", width=3,
+                 command=lambda: page_var.set(total_pages) or show_page()).pack(side=tk.LEFT, padx=2)
+        
+        # Go to page
+        ttk.Button(paging_frame, text="Go", width=3,
+                 command=lambda: show_go_page_dialog()).pack(side=tk.LEFT, padx=5)
+        
+        # Status bar
+        status_bar = ttk.Label(main_frame, textvariable=status_var, anchor=tk.W)
+        status_bar.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Tampilkan halaman pertama
+        show_page()
+        
+        # Fokus ke jendela baru
+        window.focus_force()
+        
+        return window
 
 if __name__ == "__main__":
     app = ServerApp()
