@@ -82,7 +82,7 @@ class ClientApp:
                     try:
                         self.db_connector = FirebirdConnector(
                             db_path=db_config['path'],
-                            username=db_config.get('username', 'sysdba'),
+                            username=db_config.get('username', 'SYSDBA'),
                             password=db_config.get('password', 'masterkey')
                         )
                         print("Debug: Database connector initialized from config")

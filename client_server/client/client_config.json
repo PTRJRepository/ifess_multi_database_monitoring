@@ -1,0 +1,13 @@
+{
+  "server_address": "localhost",
+  "server_port": 5555,
+  "auto_reconnect": true,
+  "reconnect_interval": 5,
+  "client_id": "client_c2d125a9",
+  "display_name": "FDB-Client-DESKTOP-0SC2J6C",
+  "database": {
+    "path": "C:/Gawean Rebinmas/Monitoring Database/Ifess Monitoring/PTRJ_P1A_08042025/PTRJ_P1A.FDB",
+    "username": "SYSDBA",
+    "password": "masterkey"
+  }
+}

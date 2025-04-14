@@ -1,0 +1,30 @@
+[2025-04-12 09:45:39] ISQL path diperbarui: C:\Program Files (x86)\Firebird-1.5.6.5026-0_win32_Manual\bin\isql.exe
+[2025-04-12 09:45:59] ISQL ditemukan otomatis di: C:\Program Files (x86)\Firebird-1.5.6.5026-0_win32_Manual\bin\isql.exe
+[2025-04-12 09:45:59] Terhubung ke database: PTRJ_P1A.FDB
+[2025-04-12 09:46:45] Terhubung ke server: 10.0.0.162:5555
+[2025-04-12 09:46:45] Terhubung ke server: 10.0.0.162:5555
+[2025-04-12 09:46:45] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-12 09:46:46] Query berhasil: 0 result sets ditemukan
+[2025-04-12 09:46:46] Hasil query berhasil dikirim ke server
+[2025-04-12 09:46:46] Query berhasil dieksekusi
+[2025-04-12 09:48:17] ISQL path diperbarui: C:/Program Files (x86)/Firebird-1.5.6.5026-0_win32_Manual/bin/isql.exe
+[2025-04-12 09:48:30] Koneksi ke server terputus
+[2025-04-12 09:48:30] Auto-reconnect diaktifkan
+[2025-04-12 09:48:30] Mencoba auto-reconnect ke 10.0.0.162:5555...
+[2025-04-12 09:48:30] Terhubung ke server: 10.0.0.162:5555
+[2025-04-12 09:48:30] Terhubung ke server: 10.0.0.162:5555
+[2025-04-12 09:48:30] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-12 09:48:31] Query berhasil: 0 result sets ditemukan
+[2025-04-12 09:48:31] Hasil query berhasil dikirim ke server
+[2025-04-12 09:48:31] Query berhasil dieksekusi
+[2025-04-12 09:48:46] Terputus dari server
+[2025-04-12 09:48:46] Auto-reconnect diaktifkan
+[2025-04-12 09:48:46] Mencoba auto-reconnect ke 10.0.0.162:5555...
+[2025-04-12 09:48:47] Terhubung ke server: 10.0.0.162:5555
+[2025-04-12 09:48:47] Terhubung ke server: 10.0.0.162:5555
+[2025-04-12 09:48:47] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-12 09:48:47] Query berhasil: 0 result sets ditemukan
+[2025-04-12 09:48:47] Hasil query berhasil dikirim ke server
+[2025-04-12 09:48:47] Query berhasil dieksekusi
+[2025-04-12 09:48:51] Terputus dari server
+[2025-04-12 09:49:44] Berhasil terhubung ke database: PTRJ_P1A.FDB

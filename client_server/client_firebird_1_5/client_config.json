@@ -1,0 +1,14 @@
+{
+  "server_address": "localhost",
+  "server_port": 5555,
+  "auto_reconnect": false,
+  "reconnect_interval": 5,
+  "client_id": "client_846615e2",
+  "display_name": "FDB-Client-DESKTOP-0SC2J6C",
+  "database": {
+    "path": "C:/Gawean Rebinmas/Monitoring Database/Ifess Monitoring/PTRJ_P1A_08042025/PTRJ_P1A.FDB",
+    "username": "SYSDBA",
+    "password": "masterkey",
+    "isql_path": "C:/Program Files (x86)/Firebird-1.5.6.5026-0_win32_Manual/bin/isql.exe"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "server_address": "localhost",
+  "server_port": 5555,
+  "auto_reconnect": false,
+  "reconnect_interval": 5,
+  "client_id": "client_1A",
+  "display_name": "PG1A",
+  "isql_path": "C:/Program Files (x86)/Firebird/bin/isql.exe",
+  "database": {
+    "path": "D:/Gawean Rebinmas/Monitoring Database/ifess/PTRJ_P1A_08042025/PTRJ_P1A.FDB",
+    "username": "SYSDBA",
+    "password": "masterkey"
+  }
+}

@@ -1,0 +1,33 @@
+[2025-04-14 10:28:09] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-14 10:28:20] Terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 12:18:48] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 12:19:15] Terhubung ke server: localhost:5555
+[2025-04-14 12:19:15] Terhubung ke server: localhost:5555
+[2025-04-14 12:19:15] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 12:19:16] Query berhasil: 0 result sets ditemukan
+[2025-04-14 12:19:16] Hasil query berhasil dikirim ke server
+[2025-04-14 12:19:16] Query berhasil dieksekusi
+[2025-04-14 12:20:07] Menerima query: SELECT FIRST 10000 r.ID, r.SCANNERUSEREMPID, r.OCFIELDID, r.DEFOCID, r.JOBCODEID,
+    r.WORKEREMPID, r.VEHICLECODEID, r.CRDIVISIONID, r.UPLOADDATETIME, r.TRANSNO,
+    r.TRANSDATE, r.TRANSTIME, r.RECORDTAG, r.TRANSSTATUS, r.LASTUSER,
+    r.LASTUPDATED, r.ACKNOWLEDGEBY, r.ACKNOWLEDGEON, r.REMARKS, r.ISCONTRACT,
+    r.SCANOUTDATE, r.SCANOUTTIME, r.SCANOUTUSEREMPID, r.ISVALIDSCANOUT,
+    r.REVIEWSTATUSID, r.REVIEWID, r.REVIEWDATE
+FROM GWSCANNERDATA07 r
+[2025-04-14 12:20:07] Query berhasil: 0 result sets ditemukan
+[2025-04-14 12:20:07] Hasil query berhasil dikirim ke server
+[2025-04-14 12:20:07] Query berhasil dieksekusi
+[2025-04-14 12:20:49] Menerima query: SELECT FIRST 10000 r.ID, r.SCANNERUSEREMPID, r.OCFIELDID, r.DEFOCID, r.JOBCODEID,
+    r.WORKEREMPID, r.VEHICLECODEID, r.CRDIVISIONID, r.UPLOADDATETIME, r.TRANSNO,
+    r.TRANSDATE, r.TRANSTIME, r.RECORDTAG, r.TRANSSTATUS, r.LASTUSER,
+    r.LASTUPDATED, r.ACKNOWLEDGEBY, r.ACKNOWLEDGEON, r.REMARKS, r.ISCONTRACT,
+    r.SCANOUTDATE, r.SCANOUTTIME, r.SCANOUTUSEREMPID, r.ISVALIDSCANOUT,
+    r.REVIEWSTATUSID, r.REVIEWID, r.REVIEWDATE
+FROM GWSCANNERDATA10 r
+[2025-04-14 12:20:49] Query berhasil: 0 result sets ditemukan
+[2025-04-14 12:20:49] Hasil query berhasil dikirim ke server
+[2025-04-14 12:20:49] Query berhasil dieksekusi
+[2025-04-14 12:21:48] Koneksi ke server terputus
+[2025-04-14 12:21:48] Auto-reconnect diaktifkan
+[2025-04-14 12:21:48] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 12:21:50] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it

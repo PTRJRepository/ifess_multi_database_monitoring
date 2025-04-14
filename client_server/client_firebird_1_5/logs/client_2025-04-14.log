@@ -1,0 +1,110 @@
+[2025-04-14 12:49:22] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 12:50:23] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 12:50:35] Test query berhasil: 0 result sets (waktu: 0.28 detik)
+[2025-04-14 12:53:25] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 12:53:32] Test query berhasil: 0 result sets (waktu: 0.35 detik)
+[2025-04-14 12:55:37] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 12:55:42] Test query berhasil: 0 result sets (waktu: 0.26 detik)
+[2025-04-14 12:55:59] Tes koneksi database berhasil. 0 tabel ditemukan.
+[2025-04-14 12:57:05] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:02:53] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:04:14] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:04:52] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:04:58] Test query berhasil: 1 result sets (waktu: 0.28 detik)
+[2025-04-14 13:04:58]   Result set 1: 5 rows, 27 columns
+[2025-04-14 13:04:58]   Sample first row: ['1', '269', '174']...
+[2025-04-14 13:05:07] Auto-reconnect diaktifkan
+[2025-04-14 13:05:07] Mencoba auto-reconnect ke 10.0.0.162:5555...
+[2025-04-14 13:05:17] Error saat terhubung ke server: timed out
+[2025-04-14 13:09:58] Mencoba auto-reconnect ke 10.0.0.162:5555...
+[2025-04-14 13:10:08] Error saat terhubung ke server: timed out
+[2025-04-14 13:10:31] Auto-reconnect diaktifkan
+[2025-04-14 13:10:31] Mencoba auto-reconnect ke 10.0.0.162:5555...
+[2025-04-14 13:10:41] Error saat terhubung ke server: timed out
+[2025-04-14 13:10:43] Terhubung ke server: localhost:5555
+[2025-04-14 13:10:43] Terhubung ke server: localhost:5555
+[2025-04-14 13:10:43] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 13:10:44] Query berhasil: 1 result sets ditemukan
+[2025-04-14 13:10:44]   Result set 1: 264 rows, 1 columns
+[2025-04-14 13:10:44]   Sample first row: ['ACTING']...
+[2025-04-14 13:10:44] Hasil query berhasil dikirim ke server
+[2025-04-14 13:10:44] Query berhasil dieksekusi
+[2025-04-14 13:11:14] Menerima query: SELECT FIRST 10000 r.ID, r.SCANNERUSEREMPID, r.OCFIELDID, r.DEFOCID, r.JOBCODEID,
+    r.WORKEREMPID, r.VEHICLECODEID, r.CRDIVISIONID, r.UPLOADDATETIME, r.TRANSNO,
+    r.TRANSDATE, r.TRANSTIME, r.RECORDTAG, r.TRANSSTATUS, r.LASTUSER,
+    r.LASTUPDATED, r.ACKNOWLEDGEBY, r.ACKNOWLEDGEON, r.REMARKS, r.ISCONTRACT,
+    r.SCANOUTDATE, r.SCANOUTTIME, r.SCANOUTUSEREMPID, r.ISVALIDSCANOUT,
+    r.REVIEWSTATUSID, r.REVIEWID, r.REVIEWDATE
+FROM GWSCANNERDATA07 r
+[2025-04-14 13:11:14] Query berhasil: 1 result sets ditemukan
+[2025-04-14 13:11:14]   Result set 1: 5 rows, 27 columns
+[2025-04-14 13:11:14]   Sample first row: ['1', '269', '174']...
+[2025-04-14 13:11:14] Hasil query berhasil dikirim ke server
+[2025-04-14 13:11:14] Query berhasil dieksekusi
+[2025-04-14 13:11:27] Koneksi ke server terputus
+[2025-04-14 13:11:27] Auto-reconnect diaktifkan
+[2025-04-14 13:11:27] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 13:11:29] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-14 13:12:47] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:13:01] Test query berhasil: 1 result sets (waktu: 0.26 detik)
+[2025-04-14 13:13:01]   Result set 1: 5 rows, 27 columns
+[2025-04-14 13:13:01]   Sample first row: ['1', '269', '174']...
+[2025-04-14 13:16:52] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:16:58] Query executed successfully in 0.15 seconds
+[2025-04-14 13:16:58]   Result set 1: 5 rows, 27 columns
+[2025-04-14 13:22:30] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:22:42] Auto-reconnect diaktifkan
+[2025-04-14 13:22:42] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 13:22:42] Terhubung ke server: localhost:5555
+[2025-04-14 13:22:42] Terhubung ke server: localhost:5555
+[2025-04-14 13:22:42] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 13:22:42] Query berhasil: 1 result sets ditemukan
+[2025-04-14 13:22:42]   Result set 1: 264 rows, 1 columns
+[2025-04-14 13:22:42]   Sample first row: ['ACTING']...
+[2025-04-14 13:22:42] Hasil query berhasil dikirim ke server
+[2025-04-14 13:22:42] Query berhasil dieksekusi
+[2025-04-14 13:22:54] Menerima query: -- Write your SQL query here
+-- Example: SELECT * FROM GWSCANNERDATA07 WHERE ID <= 10
+
+SELECT FIRST 5 * FROM GWSCANNERDATA07
+[2025-04-14 13:22:55] Query berhasil: 1 result sets ditemukan
+[2025-04-14 13:22:55]   Result set 1: 5 rows, 27 columns
+[2025-04-14 13:22:55]   Sample first row: ['1', '269', '174']...
+[2025-04-14 13:22:55] Hasil query berhasil dikirim ke server
+[2025-04-14 13:22:55] Query berhasil dieksekusi
+[2025-04-14 13:23:10] Query executed successfully in 0.24 seconds
+[2025-04-14 13:23:10]   Result set 1: 5 rows, 27 columns
+[2025-04-14 13:23:21] Koneksi ke server terputus
+[2025-04-14 13:23:21] Auto-reconnect diaktifkan
+[2025-04-14 13:23:21] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 13:23:23] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-14 13:25:14] Auto-reconnect diaktifkan
+[2025-04-14 13:25:14] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 13:25:15] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:25:16] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-14 13:57:40] Auto-reconnect diaktifkan
+[2025-04-14 13:57:40] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 13:57:41] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 13:57:42] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-14 13:57:51] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 13:57:51] Terhubung ke server: localhost:5555
+[2025-04-14 13:57:51] Terhubung ke server: localhost:5555
+[2025-04-14 13:57:51] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 13:57:52] Query berhasil: 1 result sets ditemukan
+[2025-04-14 13:57:52]   Result set 1: 264 rows, 1 columns
+[2025-04-14 13:57:52]   Sample first row: ['ACTING']...
+[2025-04-14 13:57:52] Hasil query berhasil dikirim ke server
+[2025-04-14 13:57:52] Query berhasil dieksekusi
+[2025-04-14 13:58:08] Menerima query: -- Write your SQL query here
+-- Example: SELECT * FROM GWSCANNERDATA07 WHERE ID <= 10
+
+SELECT FIRST 5 * FROM GWSCANNERDATA07
+[2025-04-14 13:58:08] Query berhasil: 1 result sets ditemukan
+[2025-04-14 13:58:08]   Result set 1: 5 rows, 27 columns
+[2025-04-14 13:58:08]   Sample first row: ['1', '269', '174']...
+[2025-04-14 13:58:08] Hasil query berhasil dikirim ke server
+[2025-04-14 13:58:08] Query berhasil dieksekusi
+[2025-04-14 13:58:23] Koneksi ke server terputus
+[2025-04-14 13:58:23] Auto-reconnect diaktifkan
+[2025-04-14 13:58:23] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 13:58:26] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it

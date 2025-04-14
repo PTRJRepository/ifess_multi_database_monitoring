@@ -1,0 +1,39 @@
+PERJANJIAN LISENSI FIREBIRD QUERY CLIENT
+=====================================
+
+Harap baca perjanjian lisensi ini dengan seksama sebelum Anda menginstal dan menggunakan Firebird Query Client.
+
+Dengan menginstal dan menggunakan perangkat lunak ini, Anda menyatakan bahwa Anda telah membaca, memahami, dan menyetujui untuk terikat oleh syarat dan ketentuan perjanjian lisensi ini.
+
+1. PEMBERIAN LISENSI
+-------------------
+Perangkat lunak ini tersedia untuk digunakan di lingkungan perusahaan Anda. Anda diberikan lisensi non-eksklusif untuk menginstal dan menggunakan perangkat lunak ini sesuai dengan ketentuan perjanjian ini.
+
+2. BATASAN PENGGUNAAN
+--------------------
+Anda tidak boleh:
+a. Menyewakan, menjual, atau mendistribusikan perangkat lunak ini
+b. Melakukan reverse engineering, dekompilasi, atau membongkar perangkat lunak
+c. Menghapus atau mengubah pemberitahuan hak cipta atau merek dagang apa pun
+
+3. HAK KEPEMILIKAN
+-----------------
+Semua hak, kepemilikan, dan kepentingan dalam dan terhadap perangkat lunak ini, termasuk tetapi tidak terbatas pada hak kekayaan intelektual, tetap menjadi milik pembuat perangkat lunak.
+
+4. DUKUNGAN TEKNIS
+----------------
+Dukungan teknis untuk perangkat lunak ini disediakan melalui administrator sistem Anda.
+
+5. JAMINAN DAN DISCLAIMER
+-----------------------
+Perangkat lunak ini disediakan "sebagaimana adanya" tanpa jaminan apapun, baik tersurat maupun tersirat.
+
+6. BATASAN TANGGUNG JAWAB
+-----------------------
+Dalam keadaan apapun, pembuat perangkat lunak tidak bertanggung jawab atas kerugian apapun yang timbul dari penggunaan atau ketidakmampuan untuk menggunakan perangkat lunak ini.
+
+7. UMUM
+------
+Perjanjian ini mengatur penggunaan Anda atas perangkat lunak ini dan menggantikan semua perjanjian sebelumnya antara Anda dan pembuat perangkat lunak.
+
+Dengan melanjutkan instalasi perangkat lunak ini, Anda menyatakan bahwa Anda telah membaca dan menyetujui syarat dan ketentuan perjanjian lisensi ini. 
