@@ -1,0 +1,3 @@
+@echo off
+echo Starting Firebird Client...
+start Firebird_Client.exe
