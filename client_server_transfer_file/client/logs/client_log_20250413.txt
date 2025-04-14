@@ -1,0 +1,123 @@
+[2025-04-13 13:35:30] [2025-04-13 13:35:30] Terhubung ke database: PTRJ_P1A.FDB
+
+[2025-04-13 13:38:02] [2025-04-13 13:38:02] Berhasil terhubung ke database: PTRJ_P1A.FDB
+
+[2025-04-13 13:38:24] [2025-04-13 13:38:24] Terhubung ke database: PTRJ_P1A.FDB
+
+[2025-04-13 13:38:49] [2025-04-13 13:38:49] Auto-reconnect diaktifkan
+
+[2025-04-13 13:38:49] [2025-04-13 13:38:49] Mencoba auto-reconnect ke localhost:5555...
+
+[2025-04-13 13:38:49] [2025-04-13 13:38:49] Terhubung ke server: localhost:5555
+
+[2025-04-13 13:38:49] [2025-04-13 13:38:49] Terhubung ke server: localhost:5555
+
+[2025-04-13 13:38:49] [2025-04-13 13:38:49] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+
+[2025-04-13 13:38:50] [2025-04-13 13:38:50] Query berhasil: 1 result sets ditemukan
+
+[2025-04-13 13:38:50] [2025-04-13 13:38:50]   Result set 1: 265 rows, 1 columns
+
+[2025-04-13 13:38:50] [2025-04-13 13:38:50]   Sample first row: ['ACTING']...
+
+[2025-04-13 13:38:50] [2025-04-13 13:38:50] Hasil query berhasil dikirim ke server
+
+[2025-04-13 13:38:50] [2025-04-13 13:38:50] Query berhasil dieksekusi
+
+[2025-04-13 13:48:42] Auto-reconnect diaktifkan
+[2025-04-13 13:48:42] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:48:43] Database terpilih: PTRJ_P1A.FDB
+[2025-04-13 13:48:44] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-13 13:48:49] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:48:51] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-13 13:48:56] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:48:56] Terhubung ke server: localhost:5555
+[2025-04-13 13:48:56] Terhubung ke server: localhost:5555
+[2025-04-13 13:49:15] Koneksi ke server terputus
+[2025-04-13 13:49:15] Auto-reconnect diaktifkan
+[2025-04-13 13:49:15] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:49:17] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-13 13:55:49] Auto-reconnect diaktifkan
+[2025-04-13 13:55:49] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:55:49] Terhubung ke server: localhost:5555
+[2025-04-13 13:55:49] Terhubung ke server: localhost:5555
+[2025-04-13 13:55:50] Database terpilih: PTRJ_P1A.FDB
+[2025-04-13 13:56:06] Koneksi ke server terputus
+[2025-04-13 13:56:06] Auto-reconnect diaktifkan
+[2025-04-13 13:56:06] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:56:06] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:06] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:16] Koneksi ke server terputus
+[2025-04-13 13:56:16] Auto-reconnect diaktifkan
+[2025-04-13 13:56:16] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:56:16] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:16] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:26] Koneksi ke server terputus
+[2025-04-13 13:56:26] Auto-reconnect diaktifkan
+[2025-04-13 13:56:26] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:56:26] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:26] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:36] Koneksi ke server terputus
+[2025-04-13 13:56:36] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:56:36] Auto-reconnect diaktifkan
+[2025-04-13 13:56:36] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:36] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:46] Koneksi ke server terputus
+[2025-04-13 13:56:46] Auto-reconnect diaktifkan
+[2025-04-13 13:56:46] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:56:46] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:46] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:56] Koneksi ke server terputus
+[2025-04-13 13:56:56] Auto-reconnect diaktifkan
+[2025-04-13 13:56:56] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 13:56:56] Terhubung ke server: localhost:5555
+[2025-04-13 13:56:56] Terhubung ke server: localhost:5555
+[2025-04-13 14:00:31] Auto-reconnect diaktifkan
+[2025-04-13 14:00:31] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 14:00:32] Database terpilih: PTRJ_P1A.FDB
+[2025-04-13 14:00:33] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-13 14:00:38] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 14:00:40] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-13 14:00:45] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 14:00:47] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-13 14:00:52] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 14:00:52] Terhubung ke server: localhost:5555
+[2025-04-13 14:00:53] Terhubung ke server: localhost:5555
+[2025-04-13 14:00:53] Terputus dari server
+[2025-04-13 14:00:53] Auto-reconnect diaktifkan
+[2025-04-13 14:00:53] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 14:00:53] Terhubung ke server: localhost:5555
+[2025-04-13 14:00:53] Terhubung ke server: localhost:5555
+[2025-04-13 14:00:59] Menerima permintaan file database dari server
+[2025-04-13 14:00:59] Mengirim informasi file database: PTRJ_P1A.FDB (1473732608 bytes)
+[2025-04-13 14:01:04] Mengirim chunk database: 21495808/1473732608 bytes (1%)
+[2025-04-13 14:01:09] Mengirim chunk database: 43515904/1473732608 bytes (2%)
+[2025-04-13 14:01:14] Mengirim chunk database: 65011712/1473732608 bytes (4%)
+[2025-04-13 14:01:19] Mengirim chunk database: 86507520/1473732608 bytes (5%)
+[2025-04-13 14:01:24] Mengirim chunk database: 108003328/1473732608 bytes (7%)
+[2025-04-13 14:01:29] Mengirim chunk database: 129499136/1473732608 bytes (8%)
+[2025-04-13 14:01:35] Mengirim chunk database: 150994944/1473732608 bytes (10%)
+[2025-04-13 14:01:40] Mengirim chunk database: 172490752/1473732608 bytes (11%)
+[2025-04-13 14:01:45] Mengirim chunk database: 193986560/1473732608 bytes (13%)
+[2025-04-13 14:01:50] Mengirim chunk database: 215482368/1473732608 bytes (14%)
+[2025-04-13 14:01:55] Mengirim chunk database: 236978176/1473732608 bytes (16%)
+[2025-04-13 14:02:00] Mengirim chunk database: 258473984/1473732608 bytes (17%)
+[2025-04-13 14:02:05] Mengirim chunk database: 279969792/1473732608 bytes (18%)
+[2025-04-13 14:02:10] Mengirim chunk database: 301465600/1473732608 bytes (20%)
+[2025-04-13 14:02:15] Mengirim chunk database: 322961408/1473732608 bytes (21%)
+[2025-04-13 14:02:20] Mengirim chunk database: 344457216/1473732608 bytes (23%)
+[2025-04-13 14:02:25] Mengirim chunk database: 365953024/1473732608 bytes (24%)
+[2025-04-13 14:02:30] Mengirim chunk database: 387448832/1473732608 bytes (26%)
+[2025-04-13 14:02:35] Mengirim chunk database: 408944640/1473732608 bytes (27%)
+[2025-04-13 14:02:40] Mengirim chunk database: 430440448/1473732608 bytes (29%)
+[2025-04-13 14:02:45] Mengirim chunk database: 451936256/1473732608 bytes (30%)
+[2025-04-13 14:02:50] Mengirim chunk database: 473956352/1473732608 bytes (32%)
+[2025-04-13 14:02:55] Mengirim chunk database: 495452160/1473732608 bytes (33%)
+[2025-04-13 14:03:00] Mengirim chunk database: 516947968/1473732608 bytes (35%)
+[2025-04-13 14:03:05] Mengirim chunk database: 538443776/1473732608 bytes (36%)
+[2025-04-13 14:03:10] Mengirim chunk database: 559939584/1473732608 bytes (37%)
+[2025-04-13 14:03:13] Koneksi ke server terputus
+[2025-04-13 14:03:13] Auto-reconnect diaktifkan
+[2025-04-13 14:03:13] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-13 14:03:13] Terhubung ke server: localhost:5555
+[2025-04-13 14:03:13] Terhubung ke server: localhost:5555

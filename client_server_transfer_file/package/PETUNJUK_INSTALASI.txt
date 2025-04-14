@@ -1,0 +1,31 @@
+PETUNJUK INSTALASI FIREBIRD QUERY CLIENT
+==========================================
+
+Aplikasi ini memungkinkan Anda untuk terhubung ke database Firebird dan menjalankan query. Aplikasi sudah dikompilasi menjadi file executable (.exe) sehingga tidak memerlukan instalasi Python.
+
+CARA INSTALASI
+--------------
+
+METODE 1: INSTALASI OTOMATIS
+1. Pastikan komputer Anda terhubung ke internet
+2. Jalankan file "Install_FirebirdClient.bat" dengan klik dua kali
+3. Tunggu hingga proses instalasi selesai
+4. Shortcut akan dibuat di desktop Anda
+
+METODE 2: INSTALASI MANUAL
+1. Salin file "FirebirdQueryClient.exe" dari folder "dist" ke lokasi yang diinginkan di komputer Anda
+2. Buat shortcut ke file executable tersebut jika diperlukan
+
+KONFIGURASI
+-----------
+Saat pertama kali dijalankan, aplikasi akan menggunakan pengaturan default dari konfigurasi yang telah disertakan.
+
+Anda dapat mengatur ulang:
+1. Alamat server dan port
+2. Jalur database Firebird (.FDB)
+3. Username dan password database
+4. ID Client dan nama tampilan
+
+DUKUNGAN
+--------
+Jika Anda memiliki pertanyaan atau masalah, silakan hubungi administrator sistem Anda.

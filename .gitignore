@@ -1,0 +1,14 @@
+*.FDB
+*.exe
+*.zip
+__pycache__/
+*.pyc
+*.pyo
+*.pyz
+build/
+dist/
+*.spec
+*.pkg
+*.toc
+*.rar
+

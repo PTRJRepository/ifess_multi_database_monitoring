@@ -1,0 +1,13 @@
+{
+  "server_address": "localhost",
+  "server_port": 5555,
+  "auto_reconnect": true,
+  "reconnect_interval": 5,
+  "client_id": "client_2B",
+  "display_name": "PG2B",
+  "database": {
+    "path": "D:/Gawean Rebinmas/Monitoring Database/ifess/PTRJ_P2A_08042025/PTRJ_P2A.FDB",
+    "username": "SYSDBA",
+    "password": "masterkey"
+  }
+}
