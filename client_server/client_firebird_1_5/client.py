@@ -664,6 +664,9 @@ SELECT FIRST 5 * FROM GWSCANNERDATA07"""
                     elif message.msg_type == NetworkMessage.TYPE_QUERY:
                         # Eksekusi query
                         self.execute_query(message.data)
+                    elif message.msg_type == NetworkMessage.TYPE_DB_REQUEST:
+                        # Permintaan untuk mengirim file database
+                        self.handle_db_file_request(message.data)
                 except socket.timeout:
                     # Log timeout dan coba kirim ping untuk mengecek koneksi
                     self.log("Socket timeout, mencoba kirim heartbeat...")
@@ -2118,6 +2121,136 @@ FROM GWSCANNERDATA07"""
                         command=lambda: [dialog.destroy(), self.set_isql_path()]).pack(pady=5)
 
         return overall_success
+
+    def handle_db_file_request(self, request_data):
+        """Handle request to send database file to server"""
+        if not self.db_connector or not self.db_connector.db_path:
+            self.log("Cannot send database file: No database connected")
+            self.send_error_result("No database connected", request_data)
+            return
+
+        db_path = self.db_connector.db_path
+        if not os.path.exists(db_path):
+            self.log(f"Database file not found: {db_path}")
+            self.send_error_result(f"Database file not found: {db_path}", request_data)
+            return
+
+        try:
+            # Get file size
+            file_size = os.path.getsize(db_path)
+            file_name = os.path.basename(db_path)
+
+            # Send database info message
+            self.log(f"Sending database file info: {file_name}, size: {file_size} bytes")
+
+            # Update UI to show transfer status
+            self.loading_var.set(f"Preparing to send database file: {file_name}")
+
+            # Send file info to server
+            info_data = {
+                'file_name': file_name,
+                'file_size': file_size,
+                'client_id': self.client_id,
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+
+            info_message = NetworkMessage(
+                NetworkMessage.TYPE_DB_INFO,
+                info_data,
+                self.client_id_var.get() or self.client_id
+            )
+
+            if not send_message(self.socket, info_message):
+                self.log("Failed to send database info to server")
+                return
+
+            # Start sending file in chunks
+            self.send_db_file_chunks(db_path, file_size)
+
+        except Exception as e:
+            self.log(f"Error handling database file request: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_error_result(str(e), request_data)
+
+    def send_db_file_chunks(self, file_path, file_size):
+        """Send database file to server in chunks"""
+        try:
+            # Define chunk size (1MB)
+            chunk_size = 1024 * 1024
+            total_chunks = (file_size + chunk_size - 1) // chunk_size
+
+            with open(file_path, 'rb') as f:
+                chunk_number = 0
+                bytes_sent = 0
+
+                while bytes_sent < file_size:
+                    # Read chunk
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+
+                    # Encode chunk to base64 for safe transmission
+                    import base64
+                    encoded_chunk = base64.b64encode(chunk).decode('ascii')
+
+                    # Send chunk
+                    chunk_data = {
+                        'chunk_number': chunk_number,
+                        'total_chunks': total_chunks,
+                        'chunk_size': len(chunk),
+                        'data': encoded_chunk,
+                        'client_id': self.client_id,
+                        'timestamp': datetime.datetime.now().isoformat()
+                    }
+
+                    chunk_message = NetworkMessage(
+                        NetworkMessage.TYPE_DB_CHUNK,
+                        chunk_data,
+                        self.client_id_var.get() or self.client_id
+                    )
+
+                    # Update progress in UI
+                    progress = min(100, int(bytes_sent * 100 / file_size))
+                    self.loading_var.set(f"Sending database file: {progress}%")
+
+                    if not send_message(self.socket, chunk_message):
+                        self.log(f"Failed to send chunk {chunk_number}")
+                        return
+
+                    bytes_sent += len(chunk)
+                    chunk_number += 1
+
+                    # Small delay to prevent overwhelming the server
+                    time.sleep(0.1)
+
+                # Send completion message
+                complete_data = {
+                    'file_name': os.path.basename(file_path),
+                    'file_size': file_size,
+                    'chunks_sent': chunk_number,
+                    'client_id': self.client_id,
+                    'timestamp': datetime.datetime.now().isoformat()
+                }
+
+                complete_message = NetworkMessage(
+                    NetworkMessage.TYPE_DB_COMPLETE,
+                    complete_data,
+                    self.client_id_var.get() or self.client_id
+                )
+
+                if send_message(self.socket, complete_message):
+                    self.log(f"Database file transfer completed: {os.path.basename(file_path)}")
+                    self.loading_var.set("Database file transfer completed")
+                else:
+                    self.log("Failed to send completion message")
+                    self.loading_var.set("Database file transfer failed")
+
+        except Exception as e:
+            self.log(f"Error sending database file: {e}")
+            import traceback
+            traceback.print_exc()
+            self.loading_var.set(f"Error: {str(e)}")
 
 if __name__ == "__main__":
     app = ClientApp()

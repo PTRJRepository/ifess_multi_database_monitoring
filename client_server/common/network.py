@@ -16,13 +16,17 @@ class NetworkMessage:
     TYPE_REGISTER = 'register'
     TYPE_PING = 'ping'
     TYPE_PONG = 'pong'
-    
+    TYPE_DB_REQUEST = 'db_request'  # Request for database file
+    TYPE_DB_INFO = 'db_info'       # Information about database file
+    TYPE_DB_CHUNK = 'db_chunk'     # Chunk of database file
+    TYPE_DB_COMPLETE = 'db_complete'  # Database transfer complete
+
     def __init__(self, msg_type, data, client_id=None):
         self.msg_type = msg_type
         self.data = data
         self.client_id = client_id
         self.timestamp = time.time()
-        
+
     def to_json(self):
         """Konversi pesan ke format JSON"""
         return json.dumps({
@@ -31,7 +35,7 @@ class NetworkMessage:
             'client_id': self.client_id,
             'timestamp': self.timestamp
         })
-    
+
     @classmethod
     def from_json(cls, json_str):
         """Buat objek pesan dari string JSON"""
@@ -49,7 +53,7 @@ def send_message(sock, message):
     """
     Kirim pesan melalui socket.
     Protokol: [4-byte length prefix][message bytes]
-    
+
     :param sock: Socket terhubung untuk mengirim data
     :param message: Objek NetworkMessage untuk dikirim
     :return: True jika berhasil, False jika gagal
@@ -57,13 +61,13 @@ def send_message(sock, message):
     try:
         # Konversi pesan ke JSON
         json_data = message.to_json()
-        
+
         # Debug info tentang pesan yang akan dikirim
         msg_type = message.msg_type
         client_id = message.client_id
         data_keys = list(message.data.keys()) if isinstance(message.data, dict) else "non-dict"
         print(f"Sending message: type={msg_type}, client={client_id}, data_keys={data_keys}")
-        
+
         if msg_type == 'result' and isinstance(message.data, dict) and 'result' in message.data:
             result_data = message.data['result']
             print(f"Result data: {len(result_data)} result sets")
@@ -71,13 +75,13 @@ def send_message(sock, message):
                 headers = rs.get('headers', [])
                 rows = rs.get('rows', [])
                 print(f"  Result set {i+1}: {len(rows)} rows, {len(headers)} columns")
-        
+
         # Konversi string JSON ke bytes
         data = json_data.encode(ENCODING)
         # Dapatkan panjang data dalam bytes
         msg_len = len(data)
         print(f"Message size: {msg_len} bytes")
-        
+
         # Kirim panjang pesan sebagai unsigned int (4 bytes)
         sock.sendall(struct.pack('>I', msg_len))
         # Kirim data pesan
@@ -98,7 +102,7 @@ def receive_message(sock):
     """
     Terima pesan dari socket.
     Protokol: [4-byte length prefix][message bytes]
-    
+
     :param sock: Socket terhubung untuk menerima data
     :return: Objek NetworkMessage atau None jika terjadi kesalahan
     """
@@ -108,34 +112,34 @@ def receive_message(sock):
         if not len_bytes or len(len_bytes) < 4:
             print("Koneksi terputus: tidak ada data panjang pesan")
             return None  # Koneksi ditutup
-            
+
         # Unpack 4 bytes menjadi unsigned int
         msg_len = struct.unpack('>I', len_bytes)[0]
-        
+
         # Validasi ukuran pesan untuk mencegah DoS
         if msg_len > 10 * 1024 * 1024:  # 10MB batas maksimum
             print(f"Pesan terlalu besar: {msg_len} bytes")
             return None
-        
+
         # Terima semua data pesan
         data = b''
         remaining = msg_len
         start_time = time.time()
         timeout = 15  # 15 detik timeout untuk menerima seluruh pesan
-        
+
         while remaining > 0:
             # Cek apakah sudah timeout
             if time.time() - start_time > timeout:
                 print("Timeout saat menerima data pesan")
                 return None
-                
+
             chunk = sock.recv(min(remaining, BUFFER_SIZE))
             if not chunk:
                 print("Koneksi terputus saat menerima data")
                 return None  # Koneksi ditutup secara tidak terduga
             data += chunk
             remaining -= len(chunk)
-            
+
         # Dekode data ke string JSON
         try:
             json_data = data.decode(ENCODING)
@@ -155,4 +159,4 @@ def receive_message(sock):
         return None
     except (socket.error, struct.error) as e:
         print(f"Error saat menerima pesan: {e}")
-        return None 
+        return None

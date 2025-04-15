@@ -4,6 +4,7 @@ import socket
 import json
 import threading
 import time
+import queue
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, simpledialog
 import datetime
@@ -17,6 +18,20 @@ from common.network import NetworkMessage, send_message, receive_message, DEFAUL
 
 class FirebirdClient:
     """Representasi dari client yang terhubung"""
+    # Status constants
+    STATUS_IDLE = "Idle"
+    STATUS_WAITING = "Waiting"
+    STATUS_PROCESSING = "Processing"
+    STATUS_COMPLETED = "Completed"
+    STATUS_ERROR = "Error"
+
+    # File transfer status constants
+    TRANSFER_NONE = "Not Started"
+    TRANSFER_PENDING = "Pending"
+    TRANSFER_IN_PROGRESS = "In Progress"
+    TRANSFER_COMPLETED = "Completed"
+    TRANSFER_FAILED = "Failed"
+
     def __init__(self, client_id, display_name, socket, address):
         self.client_id = client_id
         self.display_name = display_name
@@ -26,6 +41,22 @@ class FirebirdClient:
         self.is_connected = True
         self.db_info = {}
         self.tables = []
+        self.query_status = self.STATUS_IDLE
+        self.current_query = None
+        self.query_start_time = None
+        self.query_end_time = None
+        self.last_error = None
+
+        # Database file transfer properties
+        self.transfer_status = self.TRANSFER_NONE
+        self.file_name = None
+        self.file_size = 0
+        self.received_size = 0
+        self.chunks_received = 0
+        self.total_chunks = 0
+        self.transfer_start_time = None
+        self.transfer_end_time = None
+        self.transfer_error = None
 
 class ServerApp:
     """Aplikasi server untuk mengelola koneksi client dan mengirim query SQL"""
@@ -38,9 +69,14 @@ class ServerApp:
         self.running = False
         self.accept_thread = None
         self.heartbeat_thread = None
+        self.query_thread = None
         self.query_history = []
         self.max_result_rows = 10000  # Batasan maksimum jumlah baris yang akan ditampilkan (diubah menjadi lebih kecil)
         self.default_socket_timeout = 60.0  # Timeout socket default yang lebih besar
+
+        # Queue for sequential query execution
+        self.query_queue = queue.Queue()
+        self.is_processing_queue = False
 
         # Inisialisasi UI
         self.init_ui()
@@ -116,11 +152,17 @@ class ServerApp:
         self.client_tree_frame = ttk.Frame(clients_frame)
         self.client_tree_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
-        self.client_tree = ttk.Treeview(self.client_tree_frame, columns=("Name", "Status"), show="headings")
+        self.client_tree = ttk.Treeview(self.client_tree_frame, columns=("Name", "Connection", "Query Status", "Time", "Transfer Status"), show="headings")
         self.client_tree.heading("Name", text="Client Name")
-        self.client_tree.heading("Status", text="Status")
-        self.client_tree.column("Name", width=180)
-        self.client_tree.column("Status", width=100)
+        self.client_tree.heading("Connection", text="Connection")
+        self.client_tree.heading("Query Status", text="Query Status")
+        self.client_tree.heading("Time", text="Execution Time")
+        self.client_tree.heading("Transfer Status", text="DB Transfer")
+        self.client_tree.column("Name", width=150)
+        self.client_tree.column("Connection", width=80)
+        self.client_tree.column("Query Status", width=100)
+        self.client_tree.column("Time", width=80)
+        self.client_tree.column("Transfer Status", width=100)
 
         # Menambahkan scrollbar vertikal
         client_vsb = ttk.Scrollbar(self.client_tree_frame, orient="vertical", command=self.client_tree.yview)
@@ -132,12 +174,22 @@ class ServerApp:
         detail_frame = ttk.Frame(clients_frame)
         detail_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=2, pady=2)
 
+        # Button to request database files from all clients
+        ttk.Button(detail_frame, text="Get All DB Files",
+                 command=self.request_all_database_files).pack(side=tk.LEFT, padx=2)
+
+        # Button to request database file from selected client
+        ttk.Button(detail_frame, text="Get Selected DB",
+                 command=self.request_selected_database_file).pack(side=tk.LEFT, padx=2)
+
         ttk.Button(detail_frame, text="Show Details",
                  command=self.show_selected_client_details).pack(side=tk.RIGHT, padx=2)
 
         # Client context menu
         self.client_menu = tk.Menu(self.client_tree, tearoff=0)
         self.client_menu.add_command(label="Show Details", command=self.show_selected_client_details)
+        self.client_menu.add_separator()
+        self.client_menu.add_command(label="Request Database File", command=self.request_selected_database_file)
         self.client_menu.add_separator()
         self.client_menu.add_command(label="Refresh Tables", command=self.refresh_client_tables)
         self.client_menu.add_command(label="Disconnect Client", command=self.disconnect_client)
@@ -322,22 +374,59 @@ class ServerApp:
         # Tambahkan client yang terhubung
         with self.lock:
             for client_id, client in self.clients.items():
-                status = "Connected" if client.is_connected else "Disconnected"
+                connection_status = "Connected" if client.is_connected else "Disconnected"
 
-                # Set tag for Connected status to display in green
-                if client.is_connected:
-                    tag = "connected"
-                else:
+                # Calculate execution time if applicable
+                execution_time = ""
+                if client.query_start_time:
+                    if client.query_end_time:
+                        # Query completed, show total time
+                        time_diff = client.query_end_time - client.query_start_time
+                        execution_time = f"{time_diff:.2f}s"
+                    else:
+                        # Query still running, show elapsed time
+                        time_diff = time.time() - client.query_start_time
+                        execution_time = f"{time_diff:.2f}s"
+
+                # Get database transfer status
+                transfer_status = client.transfer_status
+                if client.transfer_status == client.TRANSFER_IN_PROGRESS and client.file_size > 0:
+                    # Show progress percentage
+                    progress = min(100, int(client.received_size * 100 / client.file_size))
+                    transfer_status = f"{progress}%"
+
+                # Set tag based on query status
+                if not client.is_connected:
                     tag = "disconnected"
+                elif client.query_status == client.STATUS_IDLE:
+                    tag = "idle"
+                elif client.query_status == client.STATUS_WAITING:
+                    tag = "waiting"
+                elif client.query_status == client.STATUS_PROCESSING:
+                    tag = "processing"
+                elif client.query_status == client.STATUS_COMPLETED:
+                    tag = "completed"
+                elif client.query_status == client.STATUS_ERROR:
+                    tag = "error"
+                else:
+                    tag = "connected"
 
                 self.client_tree.insert("", tk.END, values=(
                     client.display_name,
-                    status
+                    connection_status,
+                    client.query_status,
+                    execution_time,
+                    transfer_status
                 ), tags=(tag,))
 
         # Configure tag colors
         self.client_tree.tag_configure("connected", foreground="green")
         self.client_tree.tag_configure("disconnected", foreground="red")
+        self.client_tree.tag_configure("idle", foreground="green")
+        self.client_tree.tag_configure("waiting", foreground="orange")
+        self.client_tree.tag_configure("processing", foreground="blue")
+        self.client_tree.tag_configure("completed", foreground="green")
+        self.client_tree.tag_configure("error", foreground="red")
 
         # Update dropdown target
         self.update_target_dropdown()
@@ -565,6 +654,17 @@ class ServerApp:
 
                         # Hasil query
                         self.process_query_result(client, message.data)
+                    elif message.msg_type == NetworkMessage.TYPE_DB_INFO:
+                        # Informasi file database yang akan dikirim
+                        self.log(f"Menerima informasi file database dari {display_name}")
+                        self.process_db_file_info(client, message.data)
+                    elif message.msg_type == NetworkMessage.TYPE_DB_CHUNK:
+                        # Chunk dari file database
+                        self.process_db_file_chunk(client, message.data)
+                    elif message.msg_type == NetworkMessage.TYPE_DB_COMPLETE:
+                        # Notifikasi transfer file selesai
+                        self.log(f"Transfer file database dari {display_name} selesai")
+                        self.process_db_file_complete(client, message.data)
                     elif message.msg_type == NetworkMessage.TYPE_ERROR:
                         # Error dari client
                         error = message.data.get('error', 'Unknown error')
@@ -661,6 +761,17 @@ class ServerApp:
         description = result_data.get('description', '')
         result = result_data.get('result', [])
         error = result_data.get('error')
+
+        # Update client status to completed
+        client.query_end_time = time.time()
+        if error:
+            client.query_status = client.STATUS_ERROR
+            client.last_error = error
+        else:
+            client.query_status = client.STATUS_COMPLETED
+
+        # Update client list in UI
+        self.root.after(0, self.update_client_list)
 
         # Debug info detail
         print("="*50)
@@ -1272,12 +1383,22 @@ class ServerApp:
     def _send_query_thread(self, query, target):
         """Mengirim query dalam thread terpisah untuk mencegah UI freeze"""
         try:
+            # Add query to queue instead of executing immediately
             if target == "All Clients":
-                # Kirim ke semua client
+                # Add all connected clients to queue
                 with self.lock:
                     for client_id, client in self.clients.items():
                         if client.is_connected:
-                            self.send_query_to_client(client, query)
+                            # Reset client status
+                            client.query_status = client.STATUS_WAITING
+                            client.current_query = query
+                            client.query_start_time = None
+                            client.query_end_time = None
+                            client.last_error = None
+
+                            # Add to queue
+                            self.query_queue.put((client, query))
+                            self.log(f"Added {client.display_name} to query queue")
             else:
                 # Extract client_id dari target
                 client_id = target.split("(")[-1].split(")")[0]
@@ -1286,16 +1407,90 @@ class ServerApp:
                     if client_id in self.clients:
                         client = self.clients[client_id]
                         if client.is_connected:
-                            self.send_query_to_client(client, query)
+                            # Reset client status
+                            client.query_status = client.STATUS_WAITING
+                            client.current_query = query
+                            client.query_start_time = None
+                            client.query_end_time = None
+                            client.last_error = None
+
+                            # Add to queue
+                            self.query_queue.put((client, query))
+                            self.log(f"Added {client.display_name} to query queue")
                         else:
                             self.root.after(0, lambda: messagebox.showwarning("Client Disconnected",
                                                                           f"Client {client.display_name} tidak terhubung"))
                     else:
                         self.root.after(0, lambda: messagebox.showwarning("Client Not Found",
                                                                       f"Client {client_id} tidak ditemukan"))
+
+            # Start processing the queue if not already processing
+            self.start_query_queue_processing()
+
         finally:
-            # Sembunyikan indikator loading
-            self.root.after(0, self.hide_loading_indicator)
+            # Update client list to show waiting status
+            self.root.after(0, self.update_client_list)
+
+            # Keep loading indicator until all queries are processed
+            if self.query_queue.empty() and not self.is_processing_queue:
+                self.root.after(0, self.hide_loading_indicator)
+
+    def start_query_queue_processing(self):
+        """Mulai thread untuk memproses antrian query secara berurutan"""
+        if not self.is_processing_queue:
+            self.is_processing_queue = True
+            self.query_thread = threading.Thread(target=self.process_query_queue, daemon=True)
+            self.query_thread.start()
+            self.log("Started query queue processing")
+
+    def process_query_queue(self):
+        """Proses antrian query secara berurutan"""
+        try:
+            while not self.query_queue.empty():
+                # Get next client and query from queue
+                client, query = self.query_queue.get()
+
+                # Check if client is still connected
+                if not client.is_connected:
+                    self.log(f"Skipping {client.display_name} - disconnected")
+                    client.query_status = client.STATUS_ERROR
+                    client.last_error = "Client disconnected"
+                    client.query_end_time = time.time()
+                    self.root.after(0, self.update_client_list)
+                    self.query_queue.task_done()
+                    continue
+
+                # Update client status to processing
+                client.query_status = client.STATUS_PROCESSING
+                client.query_start_time = time.time()
+                self.root.after(0, self.update_client_list)
+
+                # Execute query for this client
+                try:
+                    self.log(f"Processing query for {client.display_name}")
+                    self.send_query_to_client(client, query)
+
+                    # Wait a bit to allow the client to start processing
+                    # This helps prevent overwhelming the server with responses
+                    time.sleep(0.5)
+
+                except Exception as e:
+                    self.log(f"Error processing query for {client.display_name}: {e}")
+                    client.query_status = client.STATUS_ERROR
+                    client.last_error = str(e)
+                    client.query_end_time = time.time()
+
+                # Update UI
+                self.root.after(0, self.update_client_list)
+
+                # Mark task as done
+                self.query_queue.task_done()
+        finally:
+            self.is_processing_queue = False
+            self.log("Query queue processing completed")
+            # Hide loading indicator if needed
+            if self.query_queue.empty():
+                self.root.after(0, self.hide_loading_indicator)
 
     def show_loading_indicator(self, message="Loading..."):
         """Tampilkan indikator loading"""
@@ -1419,11 +1614,19 @@ class ServerApp:
             try:
                 send_message(client.socket, query_message)
                 self.log(f"Query dikirim ke {client.display_name}")
+                # Update client status to processing
+                client.query_status = client.STATUS_PROCESSING
+                client.query_start_time = time.time()
+                self.root.after(0, self.update_client_list)
             finally:
                 # Kembalikan timeout ke nilai sebelumnya
                 client.socket.settimeout(previous_timeout)
         except Exception as e:
             self.log(f"Error saat mengirim query ke {client.display_name}: {e}")
+            client.query_status = client.STATUS_ERROR
+            client.last_error = str(e)
+            client.query_end_time = time.time()
+            self.root.after(0, self.update_client_list)
             messagebox.showerror("Send Error", f"Gagal mengirim query ke {client.display_name}: {e}")
 
     def send_query_ui(self):
@@ -1550,7 +1753,7 @@ class ServerApp:
         # Buat dialog untuk menampilkan detail
         detail_window = tk.Toplevel(self.root)
         detail_window.title(f"Client Detail: {client.display_name}")
-        detail_window.geometry("500x400")
+        detail_window.geometry("600x500")
 
         # Frame untuk info client
         info_frame = ttk.LabelFrame(detail_window, text="Client Information")
@@ -1567,6 +1770,116 @@ class ServerApp:
         else:
             status_label.config(foreground="red")
         ttk.Label(info_frame, text=f"Last Seen: {datetime.datetime.fromtimestamp(client.last_seen).strftime('%Y-%m-%d %H:%M:%S')}").pack(anchor=tk.W, padx=5, pady=2)
+
+        # Query Status Frame
+        query_frame = ttk.LabelFrame(detail_window, text="Query Status")
+        query_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        # Status label with color
+        status_text = client.query_status
+        query_status_label = ttk.Label(query_frame, text=f"Current Status: {status_text}")
+        query_status_label.pack(anchor=tk.W, padx=5, pady=2)
+
+        # Set color based on status
+        if status_text == client.STATUS_IDLE:
+            query_status_label.config(foreground="green")
+        elif status_text == client.STATUS_WAITING:
+            query_status_label.config(foreground="orange")
+        elif status_text == client.STATUS_PROCESSING:
+            query_status_label.config(foreground="blue")
+        elif status_text == client.STATUS_COMPLETED:
+            query_status_label.config(foreground="green")
+        elif status_text == client.STATUS_ERROR:
+            query_status_label.config(foreground="red")
+
+        # Show execution time if applicable
+        if client.query_start_time:
+            if client.query_end_time:
+                # Query completed, show total time
+                time_diff = client.query_end_time - client.query_start_time
+                ttk.Label(query_frame, text=f"Execution Time: {time_diff:.2f} seconds").pack(anchor=tk.W, padx=5, pady=2)
+            else:
+                # Query still running, show elapsed time
+                time_diff = time.time() - client.query_start_time
+                ttk.Label(query_frame, text=f"Elapsed Time: {time_diff:.2f} seconds (running)").pack(anchor=tk.W, padx=5, pady=2)
+
+        # Show current query if available
+        if client.current_query:
+            query_text_frame = ttk.LabelFrame(query_frame, text="Current/Last Query")
+            query_text_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            query_text = scrolledtext.ScrolledText(query_text_frame, height=4, width=50, wrap=tk.WORD)
+            query_text.insert(tk.END, client.current_query)
+            query_text.config(state=tk.DISABLED)
+            query_text.pack(fill=tk.X, padx=5, pady=5)
+
+        # Show error if applicable
+        if client.last_error:
+            error_frame = ttk.LabelFrame(query_frame, text="Error")
+            error_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            error_text = scrolledtext.ScrolledText(error_frame, height=3, width=50, wrap=tk.WORD)
+            error_text.insert(tk.END, client.last_error)
+            error_text.config(state=tk.DISABLED)
+            error_text.pack(fill=tk.X, padx=5, pady=5)
+
+        # Database Transfer Status Frame
+        transfer_frame = ttk.LabelFrame(detail_window, text="Database Transfer Status")
+        transfer_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        # Status label with color
+        transfer_status_text = client.transfer_status
+        transfer_status_label = ttk.Label(transfer_frame, text=f"Current Status: {transfer_status_text}")
+        transfer_status_label.pack(anchor=tk.W, padx=5, pady=2)
+
+        # Set color based on status
+        if transfer_status_text == client.TRANSFER_NONE or transfer_status_text == client.TRANSFER_PENDING:
+            transfer_status_label.config(foreground="black")
+        elif transfer_status_text == client.TRANSFER_IN_PROGRESS:
+            transfer_status_label.config(foreground="blue")
+        elif transfer_status_text == client.TRANSFER_COMPLETED:
+            transfer_status_label.config(foreground="green")
+        elif transfer_status_text == client.TRANSFER_FAILED:
+            transfer_status_label.config(foreground="red")
+
+        # Show file details if available
+        if client.file_name:
+            ttk.Label(transfer_frame, text=f"File: {client.file_name}").pack(anchor=tk.W, padx=5, pady=2)
+
+        # Show progress if in progress
+        if client.transfer_status == client.TRANSFER_IN_PROGRESS and client.file_size > 0:
+            progress = min(100, int(client.received_size * 100 / client.file_size))
+            ttk.Label(transfer_frame, text=f"Progress: {progress}% ({client.received_size}/{client.file_size} bytes)").pack(anchor=tk.W, padx=5, pady=2)
+
+        # Show transfer time if completed
+        if client.transfer_status == client.TRANSFER_COMPLETED and client.transfer_start_time and client.transfer_end_time:
+            transfer_time = client.transfer_end_time - client.transfer_start_time
+            transfer_speed = client.received_size / transfer_time if transfer_time > 0 else 0
+            ttk.Label(transfer_frame, text=f"Transfer Time: {transfer_time:.2f} seconds").pack(anchor=tk.W, padx=5, pady=2)
+            ttk.Label(transfer_frame, text=f"Transfer Speed: {transfer_speed:.2f} bytes/sec").pack(anchor=tk.W, padx=5, pady=2)
+
+        # Show error if applicable
+        if client.transfer_error:
+            error_frame = ttk.LabelFrame(transfer_frame, text="Transfer Error")
+            error_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            error_text = scrolledtext.ScrolledText(error_frame, height=3, width=50, wrap=tk.WORD)
+            error_text.insert(tk.END, client.transfer_error)
+            error_text.config(state=tk.DISABLED)
+            error_text.pack(fill=tk.X, padx=5, pady=5)
+
+        # Button to request database file
+        if client.is_connected:
+            def request_db():
+                if self.request_database_file(client):
+                    self.log(f"Requested database file from {client.display_name}")
+                    detail_window.destroy()  # Close the window
+                    self.show_client_details_window(client)  # Reopen with updated info
+                else:
+                    self.log(f"Failed to request database file from {client.display_name}")
+
+            ttk.Button(transfer_frame, text="Request Database File",
+                      command=request_db).pack(anchor=tk.CENTER, padx=5, pady=5)
 
         # DB Info
         db_frame = ttk.LabelFrame(detail_window, text="Database Information")
@@ -1585,9 +1898,27 @@ class ServerApp:
         for table in client.tables:
             tables_list.insert(tk.END, table)
 
+        # Button frame
+        button_frame = ttk.Frame(detail_window)
+        button_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        # Reset status button
+        def reset_status():
+            client.query_status = client.STATUS_IDLE
+            client.current_query = None
+            client.query_start_time = None
+            client.query_end_time = None
+            client.last_error = None
+            self.update_client_list()
+            detail_window.destroy()
+            self.show_client_details_window(client)
+
+        ttk.Button(button_frame, text="Reset Status",
+                  command=reset_status).pack(side=tk.LEFT, padx=5, pady=5)
+
         # Close button
-        ttk.Button(detail_window, text="Close",
-                  command=detail_window.destroy).pack(pady=10)
+        ttk.Button(button_frame, text="Close",
+                  command=detail_window.destroy).pack(side=tk.RIGHT, padx=5, pady=5)
 
     def show_client_details(self, event):
         """Handler untuk double-click di client tree"""
@@ -1818,6 +2149,211 @@ class ServerApp:
             messagebox.showinfo("Save Log", f"Log berhasil disimpan ke {filename}")
         except Exception as e:
             messagebox.showerror("Save Error", f"Gagal menyimpan log: {e}")
+
+    def process_db_file_info(self, client, info_data):
+        """Process database file information from client"""
+        try:
+            # Extract file information
+            file_name = info_data.get('file_name')
+            file_size = info_data.get('file_size', 0)
+
+            if not file_name:
+                self.log(f"Error: No file name provided by {client.display_name}")
+                return
+
+            # Create database directory if it doesn't exist
+            db_dir = os.path.join(current_dir, "databases")
+            os.makedirs(db_dir, exist_ok=True)
+
+            # Create client directory
+            client_dir = os.path.join(db_dir, client.client_id)
+            os.makedirs(client_dir, exist_ok=True)
+
+            # Set file path
+            file_path = os.path.join(client_dir, file_name)
+
+            # Update client status
+            client.transfer_status = client.TRANSFER_PENDING
+            client.file_name = file_name
+            client.file_size = file_size
+            client.received_size = 0
+            client.chunks_received = 0
+            client.total_chunks = 0
+            client.transfer_start_time = time.time()
+            client.transfer_error = None
+
+            # Create empty file
+            with open(file_path, 'wb') as f:
+                pass
+
+            self.log(f"Preparing to receive database file from {client.display_name}: {file_name} ({file_size} bytes)")
+            self.update_client_list()
+
+        except Exception as e:
+            self.log(f"Error processing database file info from {client.display_name}: {e}")
+            client.transfer_status = client.TRANSFER_FAILED
+            client.transfer_error = str(e)
+            self.update_client_list()
+
+    def process_db_file_chunk(self, client, chunk_data):
+        """Process database file chunk from client"""
+        try:
+            # Extract chunk information
+            chunk_number = chunk_data.get('chunk_number', 0)
+            total_chunks = chunk_data.get('total_chunks', 0)
+            chunk_size = chunk_data.get('chunk_size', 0)
+            encoded_data = chunk_data.get('data', '')
+
+            if not encoded_data:
+                self.log(f"Error: Empty chunk data from {client.display_name}")
+                return
+
+            # Update client status if this is the first chunk
+            if chunk_number == 0:
+                client.transfer_status = client.TRANSFER_IN_PROGRESS
+                client.total_chunks = total_chunks
+
+            # Decode chunk data
+            import base64
+            chunk_data = base64.b64decode(encoded_data)
+
+            # Get file path
+            db_dir = os.path.join(current_dir, "databases")
+            client_dir = os.path.join(db_dir, client.client_id)
+            file_path = os.path.join(client_dir, client.file_name)
+
+            # Append chunk to file
+            with open(file_path, 'ab') as f:
+                f.write(chunk_data)
+
+            # Update client status
+            client.received_size += chunk_size
+            client.chunks_received += 1
+
+            # Log progress every 10 chunks or for the first and last chunk
+            if chunk_number % 10 == 0 or chunk_number == 0 or chunk_number == total_chunks - 1:
+                progress = min(100, int(client.received_size * 100 / client.file_size))
+                self.log(f"Receiving database file from {client.display_name}: {progress}% ({client.received_size}/{client.file_size} bytes)")
+                self.update_client_list()
+
+        except Exception as e:
+            self.log(f"Error processing database file chunk from {client.display_name}: {e}")
+            client.transfer_status = client.TRANSFER_FAILED
+            client.transfer_error = str(e)
+            self.update_client_list()
+
+    def process_db_file_complete(self, client, complete_data):
+        """Process database file transfer completion"""
+        try:
+            # Extract completion information
+            file_name = complete_data.get('file_name')
+            file_size = complete_data.get('file_size', 0)
+            chunks_sent = complete_data.get('chunks_sent', 0)
+
+            # Get file path
+            db_dir = os.path.join(current_dir, "databases")
+            client_dir = os.path.join(db_dir, client.client_id)
+            file_path = os.path.join(client_dir, client.file_name)
+
+            # Verify file size
+            actual_size = os.path.getsize(file_path)
+
+            if actual_size != file_size:
+                self.log(f"Warning: File size mismatch for {file_name} from {client.display_name}. Expected: {file_size}, Actual: {actual_size}")
+
+            # Update client status
+            client.transfer_status = client.TRANSFER_COMPLETED
+            client.transfer_end_time = time.time()
+            client.received_size = actual_size
+
+            # Calculate transfer time and speed
+            transfer_time = client.transfer_end_time - client.transfer_start_time
+            transfer_speed = actual_size / transfer_time if transfer_time > 0 else 0
+
+            self.log(f"Database file transfer completed from {client.display_name}: {file_name}")
+            self.log(f"Transfer details: {actual_size} bytes in {transfer_time:.2f} seconds ({transfer_speed:.2f} bytes/sec)")
+
+            # Update UI
+            self.update_client_list()
+
+        except Exception as e:
+            self.log(f"Error processing database file completion from {client.display_name}: {e}")
+            client.transfer_status = client.TRANSFER_FAILED
+            client.transfer_error = str(e)
+            self.update_client_list()
+
+    def request_database_file(self, client):
+        """Request database file from client"""
+        if not client or not client.is_connected:
+            self.log("Cannot request database file: Client not connected")
+            return False
+
+        try:
+            # Create request message
+            request_data = {
+                'timestamp': datetime.datetime.now().isoformat()
+            }
+
+            request_message = NetworkMessage(
+                NetworkMessage.TYPE_DB_REQUEST,
+                request_data,
+                client.client_id
+            )
+
+            # Send request to client
+            if send_message(client.socket, request_message):
+                self.log(f"Database file request sent to {client.display_name}")
+                return True
+            else:
+                self.log(f"Failed to send database file request to {client.display_name}")
+                return False
+
+        except Exception as e:
+            self.log(f"Error requesting database file from {client.display_name}: {e}")
+            return False
+
+    def request_all_database_files(self):
+        """Request database files from all connected clients"""
+        with self.lock:
+            connected_clients = [client for client in self.clients.values() if client.is_connected]
+
+        if not connected_clients:
+            messagebox.showinfo("No Clients", "No connected clients to request database files from.")
+            return
+
+        success_count = 0
+        for client in connected_clients:
+            if self.request_database_file(client):
+                success_count += 1
+
+        self.log(f"Requested database files from {success_count}/{len(connected_clients)} clients")
+
+    def request_selected_database_file(self):
+        """Request database file from selected client"""
+        selected = self.client_tree.selection()
+        if not selected:
+            messagebox.showinfo("No Selection", "Please select a client first")
+            return
+
+        selected_item = selected[0]
+        item_data = self.client_tree.item(selected_item)
+        client_name = item_data['values'][0]
+
+        # Find client by name
+        with self.lock:
+            for client_id, client in self.clients.items():
+                if client.display_name == client_name:
+                    if not client.is_connected:
+                        messagebox.showwarning("Client Disconnected", f"Client {client_name} is not connected")
+                        return
+
+                    if self.request_database_file(client):
+                        self.log(f"Requested database file from {client_name}")
+                    else:
+                        self.log(f"Failed to request database file from {client_name}")
+                    return
+
+        messagebox.showinfo("Not Found", "Client not found")
 
     def show_query_dialog(self, query):
         """Tampilkan dialog berisi query yang dieksekusi"""
