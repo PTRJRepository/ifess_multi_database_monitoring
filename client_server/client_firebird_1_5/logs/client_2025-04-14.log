@@ -108,3 +108,213 @@ SELECT FIRST 5 * FROM GWSCANNERDATA07
 [2025-04-14 13:58:23] Auto-reconnect diaktifkan
 [2025-04-14 13:58:23] Mencoba auto-reconnect ke localhost:5555...
 [2025-04-14 13:58:26] Error saat terhubung ke server: [WinError 10061] No connection could be made because the target machine actively refused it
+[2025-04-14 16:45:40] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 16:46:02] Auto-reconnect diaktifkan
+[2025-04-14 16:46:02] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:46:02] Terhubung ke server: localhost:5555
+[2025-04-14 16:46:02] Terhubung ke server: localhost:5555
+[2025-04-14 16:46:02] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:46:02] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:46:02]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:46:02]   Sample first row: ['ACTING']...
+[2025-04-14 16:46:02] Hasil query berhasil dikirim ke server
+[2025-04-14 16:46:02] Query berhasil dieksekusi
+[2025-04-14 16:46:19] Menerima query: -- Write your SQL query here
+-- Example: SELECT * FROM GWSCANNERDATA07 WHERE ID <= 10
+
+SELECT FIRST 5 * FROM GWSCANNERDATA07
+[2025-04-14 16:46:19] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:46:19]   Result set 1: 5 rows, 27 columns
+[2025-04-14 16:46:19]   Sample first row: ['1', '269', '174']...
+[2025-04-14 16:46:19] Hasil query berhasil dikirim ke server
+[2025-04-14 16:46:20] Query berhasil dieksekusi
+[2025-04-14 16:47:09] Auto-reconnect diaktifkan
+[2025-04-14 16:47:09] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:47:09] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:09] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:09] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:47:10] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 16:47:10] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:47:10]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:47:10]   Sample first row: ['ACTING']...
+[2025-04-14 16:47:10] Hasil query berhasil dikirim ke server
+[2025-04-14 16:47:10] Query berhasil dieksekusi
+[2025-04-14 16:47:18] Koneksi ke server terputus
+[2025-04-14 16:47:18] Koneksi ke server terputus
+[2025-04-14 16:47:18] Auto-reconnect diaktifkan
+[2025-04-14 16:47:18] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:47:18] Auto-reconnect diaktifkan
+[2025-04-14 16:47:18] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:47:19] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:19] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:19] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:19] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:47:19] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:19] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:47:19] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:47:19]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:47:19] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:47:20]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:47:20] Hasil query berhasil dikirim ke server
+[2025-04-14 16:47:20]   Sample first row: ['ACTING']...
+[2025-04-14 16:47:20] Query berhasil dieksekusi
+[2025-04-14 16:47:20] Hasil query berhasil dikirim ke server
+[2025-04-14 16:47:20] Query berhasil dieksekusi
+[2025-04-14 16:47:30] Koneksi ke server terputus
+[2025-04-14 16:47:30] Auto-reconnect diaktifkan
+[2025-04-14 16:47:30] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:47:30] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:30] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:30] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:47:30] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:47:30]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:47:30]   Sample first row: ['ACTING']...
+[2025-04-14 16:47:30] Hasil query berhasil dikirim ke server
+[2025-04-14 16:47:30] Query berhasil dieksekusi
+[2025-04-14 16:47:38] Koneksi ke server terputus
+[2025-04-14 16:47:38] Auto-reconnect diaktifkan
+[2025-04-14 16:47:38] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:47:38] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:38] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:38] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:47:39] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:47:39]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:47:39]   Sample first row: ['ACTING']...
+[2025-04-14 16:47:39] Hasil query berhasil dikirim ke server
+[2025-04-14 16:47:39] Query berhasil dieksekusi
+[2025-04-14 16:47:48] Koneksi ke server terputus
+[2025-04-14 16:47:48] Koneksi ke server terputus
+[2025-04-14 16:47:48] Auto-reconnect diaktifkan
+[2025-04-14 16:47:48] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:47:48] Auto-reconnect diaktifkan
+[2025-04-14 16:47:48] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:47:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:47:49] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:47:49] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:47:49] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:47:49] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:47:50]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:47:50]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:47:50]   Sample first row: ['ACTING']...
+[2025-04-14 16:47:50]   Sample first row: ['ACTING']...
+[2025-04-14 16:47:50] Hasil query berhasil dikirim ke server
+[2025-04-14 16:47:50] Hasil query berhasil dikirim ke server
+[2025-04-14 16:47:50] Query berhasil dieksekusi
+[2025-04-14 16:47:50] Query berhasil dieksekusi
+[2025-04-14 16:48:00] Koneksi ke server terputus
+[2025-04-14 16:48:00] Auto-reconnect diaktifkan
+[2025-04-14 16:48:00] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:00] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:00] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:00] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:00] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:00]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:00]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:00] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:00] Query berhasil dieksekusi
+[2025-04-14 16:48:09] Koneksi ke server terputus
+[2025-04-14 16:48:09] Auto-reconnect diaktifkan
+[2025-04-14 16:48:09] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:09] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:09] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:09] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:09] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:09]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:09]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:09] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:09] Query berhasil dieksekusi
+[2025-04-14 16:48:19] Koneksi ke server terputus
+[2025-04-14 16:48:19] Auto-reconnect diaktifkan
+[2025-04-14 16:48:19] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:19] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:19] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:19] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:19] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:19]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:19]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:19] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:19] Query berhasil dieksekusi
+[2025-04-14 16:48:29] Koneksi ke server terputus
+[2025-04-14 16:48:29] Auto-reconnect diaktifkan
+[2025-04-14 16:48:29] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:29] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:29] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:29] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:29] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:29]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:29]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:29] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:29] Query berhasil dieksekusi
+[2025-04-14 16:48:34] Koneksi ke server terputus
+[2025-04-14 16:48:34] Auto-reconnect diaktifkan
+[2025-04-14 16:48:34] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:34] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:34] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:34] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:34] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:34]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:34]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:34] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:34] Query berhasil dieksekusi
+[2025-04-14 16:48:39] Koneksi ke server terputus
+[2025-04-14 16:48:39] Auto-reconnect diaktifkan
+[2025-04-14 16:48:39] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:39] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:40] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:40] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:40] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:40]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:40]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:40] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:40] Query berhasil dieksekusi
+[2025-04-14 16:48:49] Koneksi ke server terputus
+[2025-04-14 16:48:49] Koneksi ke server terputus
+[2025-04-14 16:48:49] Auto-reconnect diaktifkan
+[2025-04-14 16:48:49] Auto-reconnect diaktifkan
+[2025-04-14 16:48:49] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:49] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:48:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:49] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:49] Terhubung ke server: localhost:5555
+[2025-04-14 16:48:49] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:48:50] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:50]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:50] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:48:50]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:50]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:48:50] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:50]   Sample first row: ['ACTING']...
+[2025-04-14 16:48:50] Query berhasil dieksekusi
+[2025-04-14 16:48:50] Hasil query berhasil dikirim ke server
+[2025-04-14 16:48:50] Query berhasil dieksekusi
+[2025-04-14 16:49:00] Koneksi ke server terputus
+[2025-04-14 16:49:00] Auto-reconnect diaktifkan
+[2025-04-14 16:49:00] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 16:49:00] Terhubung ke server: localhost:5555
+[2025-04-14 16:49:00] Terhubung ke server: localhost:5555
+[2025-04-14 16:49:00] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 16:49:01] Query berhasil: 1 result sets ditemukan
+[2025-04-14 16:49:01]   Result set 1: 264 rows, 1 columns
+[2025-04-14 16:49:01]   Sample first row: ['ACTING']...
+[2025-04-14 16:49:01] Hasil query berhasil dikirim ke server
+[2025-04-14 16:49:01] Query berhasil dieksekusi
+[2025-04-14 17:08:41] Auto-reconnect diaktifkan
+[2025-04-14 17:08:41] Mencoba auto-reconnect ke localhost:5555...
+[2025-04-14 17:08:41] Terhubung ke server: localhost:5555
+[2025-04-14 17:08:41] Terhubung ke server: localhost:5555
+[2025-04-14 17:08:41] Menerima query: SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0 OR RDB$SYSTEM_FLAG IS NULL
+[2025-04-14 17:08:42] Berhasil terhubung ke database: PTRJ_P1A.FDB
+[2025-04-14 17:08:42] Query berhasil: 1 result sets ditemukan
+[2025-04-14 17:08:42]   Result set 1: 264 rows, 1 columns
+[2025-04-14 17:08:42]   Sample first row: ['ACTING']...
+[2025-04-14 17:08:42] Hasil query berhasil dikirim ke server
+[2025-04-14 17:08:42] Query berhasil dieksekusi
+[2025-04-14 17:08:58] Sending database file info: PTRJ_P1A.FDB, size: 1473732608 bytes
+[2025-04-14 17:11:33] Failed to send chunk 682
+[2025-04-14 17:11:43] Sending database file info: PTRJ_P1A.FDB, size: 1473732608 bytes
+[2025-04-14 17:11:53] Failed to send database info to server

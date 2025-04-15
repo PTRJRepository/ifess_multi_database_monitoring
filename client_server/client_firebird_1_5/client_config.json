@@ -1,7 +1,7 @@
 {
   "server_address": "localhost",
   "server_port": 5555,
-  "auto_reconnect": false,
+  "auto_reconnect": true,
   "reconnect_interval": 5,
   "client_id": "client_846615e2",
   "display_name": "FDB-Client-DESKTOP-0SC2J6C",
